@@ -73,25 +73,28 @@ void Renderer::Render()
 					v2 - v1,
 					v0 - v2 };
 
+
 				Vector3 pointToSide{};
 				bool isPixelInTri{ true };
+				float weights[3]{};
+				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+
 				for (int i = 0; i < 3; ++i)
 				{
 					pointToSide.x = pixelCoord.x - vertices[i].x;
 					pointToSide.y = pixelCoord.y - vertices[i].y;
 
-					if (edges[i].x * pointToSide.y - edges[i].y * pointToSide.x < 0) isPixelInTri = false;
+					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+					weights[i] = cross / totalArea;
+					if (cross < 0) isPixelInTri = false;
 				}
 
 				if (isPixelInTri)
 				{
-					float W0 = -(Vector2::Cross((pixelCoord - v1), (v2 - v1)) / 2);
-					float W1 = -(Vector2::Cross((pixelCoord - v2), (v0 - v2)) / 2);
-					float W2 = -(Vector2::Cross((pixelCoord - v0), (v1 - v0)) / 2);
-
-					finalColor += m_vertices_screenSpace[i].color	* W0;
-					finalColor += m_vertices_screenSpace[i+1].color * W1;
-					finalColor += m_vertices_screenSpace[i+2].color	* W2;
+					finalColor += 
+						m_vertices_screenSpace[i].color	* weights[0]
+						+ m_vertices_screenSpace[i + 1].color * weights[1]
+						+ m_vertices_screenSpace[i + 2].color * weights[2];
 				}
 			}
 
