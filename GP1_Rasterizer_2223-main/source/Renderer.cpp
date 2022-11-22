@@ -1,6 +1,7 @@
 //External includes
 #include "SDL.h"
 #include "SDL_surface.h"
+#include <algorithm>
 
 //Project includes
 #include "Renderer.h"
@@ -22,7 +23,7 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	m_pBackBuffer = SDL_CreateRGBSurface(0, m_Width, m_Height, 32, 0, 0, 0, 0);
 	m_pBackBufferPixels = (uint32_t*)m_pBackBuffer->pixels;
 
-	//m_pDepthBufferPixels = new float[m_Width * m_Height];
+	m_pDepthBufferPixels = new float[m_Width * m_Height];
 
 
 	//Initialize Camera
@@ -31,7 +32,7 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 Renderer::~Renderer()
 {
-	//delete[] m_pDepthBufferPixels;
+	delete[] m_pDepthBufferPixels;
 }
 
 void Renderer::Update(Timer* pTimer)
@@ -47,9 +48,9 @@ void Renderer::Render()
 
 	//Render_W1_Part1();
 	//Render_W1_Part2();
-	Render_W1_Part3();
+	//Render_W1_Part3();
 	//Render_W1_Part4();
-	//Render_W1_Part5();
+	Render_W1_Part5();
 
 	//@END
 	//Update SDL Surface
@@ -316,12 +317,16 @@ void Renderer::Render_W1_Part4()
 		{{1.5f, -1.0f, 0.0f}, {1,0,0}},
 		{{-1.5f, -1.f, 0.0f}, {1,0,0}},
 
-
 		//triangle 1
 		{{0.f, 4.f, 2.f}, {1,0,0}},
 		{{3.f, -2.f, 2.f}, {0,1,0}},
 		{{-3.f, -2.f, 2.f}, {0,0,1}}
 	};
+
+	//depth buffer
+	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
+	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
+
 
 	VertexTransformationFunction(vertices_world, m_vertices_screenSpace);
 
@@ -330,12 +335,13 @@ void Renderer::Render_W1_Part4()
 	{
 		for (int py{}; py < m_Height; ++py)
 		{
+			const int pixelIdx{ px + py * m_Width };
+
 			float gradient = px / static_cast<float>(m_Width);
 			gradient += py / static_cast<float>(m_Width);
 			gradient /= 2.0f;
 
 			ColorRGB finalColor{ 0, 0, 0 };
-
 
 			for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
 			{
@@ -369,10 +375,23 @@ void Renderer::Render_W1_Part4()
 
 				if (isPixelInTri)
 				{
-					finalColor +=
-						m_vertices_screenSpace[i].color * weights[0]
-						+ m_vertices_screenSpace[i + 1].color * weights[1]
-						+ m_vertices_screenSpace[i + 2].color * weights[2];
+					//interpolate depth values
+					const float interpolatedDepth{
+						m_vertices_screenSpace[i].position.z * weights[0]
+						+ m_vertices_screenSpace[i + 1].position.z * weights[1]
+						+ m_vertices_screenSpace[i + 2].position.z * weights[2] };
+
+
+					if (interpolatedDepth < m_pDepthBufferPixels[pixelIdx])
+					{
+						m_pDepthBufferPixels[pixelIdx] = interpolatedDepth;
+
+						//color pixel according to vertex colors
+						finalColor +=
+							m_vertices_screenSpace[i].color * weights[0]
+							+ m_vertices_screenSpace[i + 1].color * weights[1]
+							+ m_vertices_screenSpace[i + 2].color * weights[2];
+					}
 				}
 			}
 
@@ -389,7 +408,114 @@ void Renderer::Render_W1_Part4()
 
 void Renderer::Render_W1_Part5()
 {
+	std::vector<Vertex> vertices_world
+	{
+		//triangle 0
+		{{0.f, 2.f, 0.f}, {1,0,0}},
+		{{1.5f, -1.0f, 0.0f}, {1,0,0}},
+		{{-1.5f, -1.f, 0.0f}, {1,0,0}},
+
+		//triangle 1
+		{{0.f, 4.f, 2.f}, {1,0,0}},
+		{{3.f, -2.f, 2.f}, {0,1,0}},
+		{{-3.f, -2.f, 2.f}, {0,0,1}}
+	};
+
+	//depth buffer
+	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
+	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
+
+	VertexTransformationFunction(vertices_world, m_vertices_screenSpace);
+
 	
+	//for every tri
+	for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
+	{
+		//construct triangle
+		const Vector2 v0{ m_vertices_screenSpace[i].position.x, m_vertices_screenSpace[i].position.y };
+		const Vector2 v1{ m_vertices_screenSpace[i + 1].position.x, m_vertices_screenSpace[i + 1].position.y };
+		const Vector2 v2{ m_vertices_screenSpace[i + 2].position.x, m_vertices_screenSpace[i + 2].position.y };
+		const Vector2 vertices[3]{ v0, v1,v2 };
+		const Vector2 edges[3]{
+			v1 - v0,
+			v2 - v1,
+			v0 - v2 };
+
+		BoundingBox boundingBox{};
+		for (size_t i = 0; i < 3; i++)
+		{
+			boundingBox.minX = std::min(int(vertices[i].x), boundingBox.minX);
+			boundingBox.minY = std::min(int(vertices[i].y), boundingBox.minY);
+
+			boundingBox.maxX = std::max(int(vertices[i].x), boundingBox.maxX);
+			boundingBox.maxY = std::max(int(vertices[i].y), boundingBox.maxY);
+		}
+
+		boundingBox.minX = std::clamp(boundingBox.minX, 0, m_Width);
+		boundingBox.maxX = std::clamp(boundingBox.maxX, 0, m_Width);
+		boundingBox.minY = std::clamp(boundingBox.minY, 0, m_Height);
+		boundingBox.maxY = std::clamp(boundingBox.maxY, 0, m_Height);
+
+
+		//every pixel
+		for (int px{boundingBox.minX}; px < boundingBox.maxX; ++px)
+		{
+			for (int py{boundingBox.minY}; py < boundingBox.maxY; ++py)
+			{
+				//pixel values
+				const int pixelIdx{ px + py * m_Width };
+				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+
+				ColorRGB finalColor{ 0, 0, 0 };
+
+				//isPointInTri?
+				Vector3 pointToSide{};
+				bool isPixelInTri{ true };
+				float weights[3]{};
+				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+				for (int i = 0; i < 3; ++i)
+				{
+					pointToSide.x = pixelCoord.x - vertices[i].x;
+					pointToSide.y = pixelCoord.y - vertices[i].y;
+
+					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+					weights[i] = cross / totalArea;
+					if (cross < 0) isPixelInTri = false;
+				}
+
+				if (isPixelInTri)
+				{
+					//interpolate depth values
+					const float interpolatedDepth{
+						m_vertices_screenSpace[i].position.z * weights[0]
+						+ m_vertices_screenSpace[i + 1].position.z * weights[1]
+						+ m_vertices_screenSpace[i + 2].position.z * weights[2] };
+
+
+					if (interpolatedDepth < m_pDepthBufferPixels[pixelIdx])
+					{
+						m_pDepthBufferPixels[pixelIdx] = interpolatedDepth;
+
+						//color pixel according to vertex colors
+						finalColor +=
+							m_vertices_screenSpace[i].color * weights[0]
+							+ m_vertices_screenSpace[i + 1].color * weights[1]
+							+ m_vertices_screenSpace[i + 2].color * weights[2];
+
+
+						//Update Color in Buffer
+						finalColor.MaxToOne();
+
+						m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+							static_cast<uint8_t>(finalColor.r * 255),
+							static_cast<uint8_t>(finalColor.g * 255),
+							static_cast<uint8_t>(finalColor.b * 255));
+					}
+				}
+
+			}
+		}
+	}
 }
 
 

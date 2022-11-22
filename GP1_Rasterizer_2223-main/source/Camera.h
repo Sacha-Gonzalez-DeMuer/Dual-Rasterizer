@@ -105,6 +105,8 @@ namespace dae
 
 			Matrix finalRotation{ Matrix::CreateRotation(totalPitch, totalYaw, 0) };
 			forward = finalRotation.TransformVector(Vector3::UnitZ).Normalized();
+			up = finalRotation.TransformVector(Vector3::UnitY).Normalized();
+			right = finalRotation.TransformVector(Vector3::UnitX).Normalized();
 
 
 			//Update Matrices

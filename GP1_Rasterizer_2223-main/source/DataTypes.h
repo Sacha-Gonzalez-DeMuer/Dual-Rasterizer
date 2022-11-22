@@ -24,11 +24,21 @@ namespace dae
 		//Vector3 viewDirection{};
 	};
 
+	struct BoundingBox
+	{
+		int minX;
+		int minY;
+		int maxX;
+		int maxY;
+	};
+
 	enum class PrimitiveTopology
 	{
 		TriangeList,
 		TriangleStrip
 	};
+
+
 
 	struct Mesh
 	{
