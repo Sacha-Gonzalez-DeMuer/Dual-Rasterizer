@@ -45,68 +45,11 @@ void Renderer::Render()
 	//Lock BackBuffer
 	SDL_LockSurface(m_pBackBuffer);
 
-	VertexTransformationFunction(m_vertices_world, m_vertices_screenSpace);
-
-	//RENDER LOGIC
-	for (int px{}; px < m_Width; ++px)
-	{
-		for (int py{}; py < m_Height; ++py)
-		{
-			float gradient = px / static_cast<float>(m_Width);
-			gradient += py / static_cast<float>(m_Width);
-			gradient /= 2.0f;
-
-			ColorRGB finalColor{ 0, 0, 0 };
-
-
-			for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
-			{
-				const Vector2 v0{ m_vertices_screenSpace[i].position.x, m_vertices_screenSpace[i].position.y };
-				const Vector2 v1{ m_vertices_screenSpace[i+1].position.x, m_vertices_screenSpace[i+1].position.y };
-				const Vector2 v2{ m_vertices_screenSpace[i+2].position.x, m_vertices_screenSpace[i+2].position.y };
-
-				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
-				const Vector2 vertices[3]{ {v0.x, v0.y}, {v1.x, v1.y},{v2.x, v2.y} };
-
-				const Vector2 edges[3]{
-					v1 - v0,
-					v2 - v1,
-					v0 - v2 };
-
-
-				Vector3 pointToSide{};
-				bool isPixelInTri{ true };
-				float weights[3]{};
-				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
-
-				for (int i = 0; i < 3; ++i)
-				{
-					pointToSide.x = pixelCoord.x - vertices[i].x;
-					pointToSide.y = pixelCoord.y - vertices[i].y;
-
-					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
-					weights[i] = cross / totalArea;
-					if (cross < 0) isPixelInTri = false;
-				}
-
-				if (isPixelInTri)
-				{
-					finalColor += 
-						m_vertices_screenSpace[i].color	* weights[0]
-						+ m_vertices_screenSpace[i + 1].color * weights[1]
-						+ m_vertices_screenSpace[i + 2].color * weights[2];
-				}
-			}
-
-			//Update Color in Buffer
-			finalColor.MaxToOne();
-
-			m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
-				static_cast<uint8_t>(finalColor.r * 255),
-				static_cast<uint8_t>(finalColor.g * 255),
-				static_cast<uint8_t>(finalColor.b * 255));
-		}
-	}
+	//Render_W1_Part1();
+	//Render_W1_Part2();
+	Render_W1_Part3();
+	//Render_W1_Part4();
+	//Render_W1_Part5();
 
 	//@END
 	//Update SDL Surface
@@ -139,7 +82,317 @@ void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_
 	}
 }
 
+
+
 bool Renderer::SaveBufferToImage() const
 {	
 	return SDL_SaveBMP(m_pBackBuffer, "Rasterizer_ColorBuffer.bmp");
 }
+
+
+
+void Renderer::Render_W1_Part1()
+{
+	std::vector<Vertex> vertices_ndc
+	{
+		{{0.f, .5f, 1.f}},
+		{{.5f, -.5f, 1.f}},
+		{{-.5f, -.5f, 1.f}}
+	};
+
+	std::vector<Vertex> vertices_screenSpace{vertices_ndc};
+
+	for (int i = 0; i < vertices_ndc.size(); ++i)
+	{
+		vertices_screenSpace[i].position.x = (vertices_screenSpace[i].position.x + 1) / 2 * static_cast<float>(m_Width);
+		vertices_screenSpace[i].position.y = (1 - vertices_screenSpace[i].position.y) / 2 * static_cast<float>(m_Height);
+	}
+
+	//RENDER LOGIC
+	for (int px{}; px < m_Width; ++px)
+	{
+		for (int py{}; py < m_Height; ++py)
+		{
+			float gradient = px / static_cast<float>(m_Width);
+			gradient += py / static_cast<float>(m_Width);
+			gradient /= 2.0f;
+
+			ColorRGB finalColor{ 0, 0, 0 };
+
+
+			for (size_t i = 0; i < vertices_screenSpace.size(); i += 3)
+			{
+				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+
+				//construct triangle
+				const Vector2 v0{ vertices_screenSpace[i].position.x, vertices_screenSpace[i].position.y };
+				const Vector2 v1{ vertices_screenSpace[i + 1].position.x, vertices_screenSpace[i + 1].position.y };
+				const Vector2 v2{ vertices_screenSpace[i + 2].position.x, vertices_screenSpace[i + 2].position.y };
+				const Vector2 vertices[3]{ v0, v1,v2 };
+				const Vector2 edges[3]{
+					v1 - v0,
+					v2 - v1,
+					v0 - v2 };
+
+				//isPointInTri?
+				Vector3 pointToSide{};
+				bool isPixelInTri{ true };
+				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+				for (int i = 0; i < 3; ++i)
+				{
+					pointToSide.x = pixelCoord.x - vertices[i].x;
+					pointToSide.y = pixelCoord.y - vertices[i].y;
+
+					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+					if (cross < 0) isPixelInTri = false;
+				}
+
+
+				if (isPixelInTri)
+				{
+					finalColor = { 1,1,1 };
+				}
+			}
+
+			//Update Color in Buffer
+			finalColor.MaxToOne();
+
+			m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+				static_cast<uint8_t>(finalColor.r * 255),
+				static_cast<uint8_t>(finalColor.g * 255),
+				static_cast<uint8_t>(finalColor.b * 255));
+		}
+	}
+}
+
+void Renderer::Render_W1_Part2()
+{
+	std::vector<Vertex> vertices_world
+	{
+		{{0.f, 2.f, 0.f}},
+		{{1.f, .0f, .0f}},
+		{{-1.f, 0.f, .0f}}
+	};
+
+	VertexTransformationFunction(vertices_world, m_vertices_screenSpace);
+
+	//RENDER LOGIC
+	for (int px{}; px < m_Width; ++px)
+	{
+		for (int py{}; py < m_Height; ++py)
+		{
+			float gradient = px / static_cast<float>(m_Width);
+			gradient += py / static_cast<float>(m_Width);
+			gradient /= 2.0f;
+
+			ColorRGB finalColor{ 0, 0, 0 };
+
+
+			for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
+			{
+				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+
+				//construct triangle
+				const Vector2 v0{ m_vertices_screenSpace[i].position.x, m_vertices_screenSpace[i].position.y };
+				const Vector2 v1{ m_vertices_screenSpace[i + 1].position.x, m_vertices_screenSpace[i + 1].position.y };
+				const Vector2 v2{ m_vertices_screenSpace[i + 2].position.x, m_vertices_screenSpace[i + 2].position.y };
+				const Vector2 vertices[3]{ v0, v1,v2 };
+				const Vector2 edges[3]{
+					v1 - v0,
+					v2 - v1,
+					v0 - v2 };
+
+				//isPointInTri?
+				Vector3 pointToSide{};
+				bool isPixelInTri{ true };
+				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+				for (int i = 0; i < 3; ++i)
+				{
+					pointToSide.x = pixelCoord.x - vertices[i].x;
+					pointToSide.y = pixelCoord.y - vertices[i].y;
+
+					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+					if (cross < 0) isPixelInTri = false;
+				}
+
+
+				if (isPixelInTri)
+				{
+					finalColor = { 1,1,1 };
+				}
+			}
+
+			//Update Color in Buffer
+			finalColor.MaxToOne();
+
+			m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+				static_cast<uint8_t>(finalColor.r * 255),
+				static_cast<uint8_t>(finalColor.g * 255),
+				static_cast<uint8_t>(finalColor.b * 255));
+		}
+	}
+}
+
+void Renderer::Render_W1_Part3()
+{
+	std::vector<Vertex> vertices_world
+	{
+		//triangle 0
+		{{0.f, 4.f, 2.f}, {1,0,0}},
+		{{3.f, -2.0f, 2.0f}, {0,1,0}},
+		{{-3.f, -2.f, 2.0f}, {0,0,1}},
+	};
+
+	VertexTransformationFunction(vertices_world, m_vertices_screenSpace);
+
+	//RENDER LOGIC
+	for (int px{}; px < m_Width; ++px)
+	{
+		for (int py{}; py < m_Height; ++py)
+		{
+			float gradient = px / static_cast<float>(m_Width);
+			gradient += py / static_cast<float>(m_Width);
+			gradient /= 2.0f;
+
+			ColorRGB finalColor{ 0, 0, 0 };
+
+
+			for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
+			{
+				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+
+				//construct triangle
+				const Vector2 v0{ m_vertices_screenSpace[i].position.x, m_vertices_screenSpace[i].position.y };
+				const Vector2 v1{ m_vertices_screenSpace[i + 1].position.x, m_vertices_screenSpace[i + 1].position.y };
+				const Vector2 v2{ m_vertices_screenSpace[i + 2].position.x, m_vertices_screenSpace[i + 2].position.y };
+				const Vector2 vertices[3]{ v0, v1,v2 };
+				const Vector2 edges[3]{
+					v1 - v0,
+					v2 - v1,
+					v0 - v2 };
+
+				//isPointInTri?
+				Vector3 pointToSide{};
+				bool isPixelInTri{ true };
+				float weights[3]{};
+				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+				for (int i = 0; i < 3; ++i)
+				{
+					pointToSide.x = pixelCoord.x - vertices[i].x;
+					pointToSide.y = pixelCoord.y - vertices[i].y;
+
+					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+					weights[i] = cross / totalArea;
+					if (cross < 0) isPixelInTri = false;
+				}
+
+
+				if (isPixelInTri)
+				{
+					finalColor +=
+						m_vertices_screenSpace[i].color * weights[0]
+						+ m_vertices_screenSpace[i + 1].color * weights[1]
+						+ m_vertices_screenSpace[i + 2].color * weights[2];
+				}
+			}
+
+			//Update Color in Buffer
+			finalColor.MaxToOne();
+
+			m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+				static_cast<uint8_t>(finalColor.r * 255),
+				static_cast<uint8_t>(finalColor.g * 255),
+				static_cast<uint8_t>(finalColor.b * 255));
+		}
+	}
+}
+
+void Renderer::Render_W1_Part4()
+{
+	std::vector<Vertex> vertices_world
+	{
+		//triangle 0
+		{{0.f, 2.f, 0.f}, {1,0,0}},
+		{{1.5f, -1.0f, 0.0f}, {1,0,0}},
+		{{-1.5f, -1.f, 0.0f}, {1,0,0}},
+
+
+		//triangle 1
+		{{0.f, 4.f, 2.f}, {1,0,0}},
+		{{3.f, -2.f, 2.f}, {0,1,0}},
+		{{-3.f, -2.f, 2.f}, {0,0,1}}
+	};
+
+	VertexTransformationFunction(vertices_world, m_vertices_screenSpace);
+
+	//RENDER LOGIC
+	for (int px{}; px < m_Width; ++px)
+	{
+		for (int py{}; py < m_Height; ++py)
+		{
+			float gradient = px / static_cast<float>(m_Width);
+			gradient += py / static_cast<float>(m_Width);
+			gradient /= 2.0f;
+
+			ColorRGB finalColor{ 0, 0, 0 };
+
+
+			for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
+			{
+				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+
+				//construct triangle
+				const Vector2 v0{ m_vertices_screenSpace[i].position.x, m_vertices_screenSpace[i].position.y };
+				const Vector2 v1{ m_vertices_screenSpace[i + 1].position.x, m_vertices_screenSpace[i + 1].position.y };
+				const Vector2 v2{ m_vertices_screenSpace[i + 2].position.x, m_vertices_screenSpace[i + 2].position.y };
+				const Vector2 vertices[3]{ v0, v1,v2 };
+				const Vector2 edges[3]{
+					v1 - v0,
+					v2 - v1,
+					v0 - v2 };
+
+				//isPointInTri?
+				Vector3 pointToSide{};
+				bool isPixelInTri{ true };
+				float weights[3]{};
+				const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+				for (int i = 0; i < 3; ++i)
+				{
+					pointToSide.x = pixelCoord.x - vertices[i].x;
+					pointToSide.y = pixelCoord.y - vertices[i].y;
+
+					const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+					weights[i] = cross / totalArea;
+					if (cross < 0) isPixelInTri = false;
+				}
+
+
+				if (isPixelInTri)
+				{
+					finalColor +=
+						m_vertices_screenSpace[i].color * weights[0]
+						+ m_vertices_screenSpace[i + 1].color * weights[1]
+						+ m_vertices_screenSpace[i + 2].color * weights[2];
+				}
+			}
+
+			//Update Color in Buffer
+			finalColor.MaxToOne();
+
+			m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+				static_cast<uint8_t>(finalColor.r * 255),
+				static_cast<uint8_t>(finalColor.g * 255),
+				static_cast<uint8_t>(finalColor.b * 255));
+		}
+	}
+}
+
+void Renderer::Render_W1_Part5()
+{
+	
+}
+
+
+
+
+

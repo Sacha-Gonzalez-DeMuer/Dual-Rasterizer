@@ -34,6 +34,12 @@ namespace dae
 		bool SaveBufferToImage() const;
 
 	private:
+		void Render_W1_Part1();
+		void Render_W1_Part2();
+		void Render_W1_Part3();
+		void Render_W1_Part4();
+		void Render_W1_Part5();
+
 		SDL_Window* m_pWindow{};
 
 		SDL_Surface* m_pFrontBuffer{ nullptr };
@@ -41,12 +47,6 @@ namespace dae
 		uint32_t* m_pBackBufferPixels{};
 
 		//float* m_pDepthBufferPixels{};
-		std::vector<Vertex> m_vertices_world
-		{
-			{{0.f, 4.f, 2.f}, {1,0,0}},
-			{{3.f, -2.0f, 2.0f}, {0,1,0}},
-			{{-3.f, -2.f, 2.0f}, {0,0,1}}
-		};
 
 		std::vector<Vertex> m_vertices_screenSpace;
 		Camera m_Camera{};
@@ -56,6 +56,5 @@ namespace dae
 
 		//Function that transforms the vertices from the mesh from World space to Screen space
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const; //W1 Version
-
 	};
 }

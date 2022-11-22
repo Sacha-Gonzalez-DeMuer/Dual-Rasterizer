@@ -49,10 +49,8 @@ namespace dae
 			//ONB => invViewMatrix
 			//Inverse(ONB) => ViewMatrix
 			viewMatrix = Matrix::CreateLookAtLH(origin, forward, up);
-			invViewMatrix = viewMatrix.Inverse();
-
+			invViewMatrix = Matrix::Inverse(viewMatrix);
 			
-
 			//ViewMatrix => Matrix::CreateLookAtLH(...) [not implemented yet]
 			//DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixlookatlh
 		}
@@ -104,6 +102,10 @@ namespace dae
 			//...
 			HandleMouseTransforms(constSpeed);
 			HandleKeyboardTransforms(constSpeed);
+
+			Matrix finalRotation{ Matrix::CreateRotation(totalPitch, totalYaw, 0) };
+			forward = finalRotation.TransformVector(Vector3::UnitZ).Normalized();
+
 
 			//Update Matrices
 			CalculateViewMatrix();
