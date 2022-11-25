@@ -40,6 +40,10 @@ namespace dae
 		void Render_W1_Part4();
 		void Render_W1_Part5();
 
+		void Render_W2_Part1(); //triangle list & strip
+		void Render_W2_Part2(); //uv
+		void Render_W2_Part2_2();
+
 		SDL_Window* m_pWindow{};
 
 		SDL_Surface* m_pFrontBuffer{ nullptr };
@@ -51,10 +55,18 @@ namespace dae
 		std::vector<Vertex> m_vertices_screenSpace;
 		Camera m_Camera{};
 
+		Texture* m_pTexture{ nullptr };
+
 		int m_Width{};
 		int m_Height{};
 
 		//Function that transforms the vertices from the mesh from World space to Screen space
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const; //W1 Version
+		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const; //W1 Version
+
+		bool IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float (&weights)[3]) const;
+		BoundingBox GenerateBoundingBox(const Vector2 vertices[]) const;
+
+		void ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out);
 	};
 }
