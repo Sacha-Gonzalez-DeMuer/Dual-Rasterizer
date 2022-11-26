@@ -698,9 +698,9 @@ void dae::Renderer::Render_W2_Part2()
 					const float interpolatedDepth
 					{
 						1 / ( 
-						( (1/m_vertices_screenSpace[i].position.z)		* weights[0]) + 
-						( (1/m_vertices_screenSpace[i + 1].position.z)	* weights[1]) + 
-						( (1/m_vertices_screenSpace[i + 2].position.z)	* weights[2]))
+						( (1/m_vertices_screenSpace[i].position.z)		* weights[1]) + 
+						( (1/m_vertices_screenSpace[i + 1].position.z)	* weights[2]) + 
+						( (1/m_vertices_screenSpace[i + 2].position.z)	* weights[0]))
 					};
 
 					if (interpolatedDepth < m_pDepthBufferPixels[pixelIdx])
@@ -709,9 +709,9 @@ void dae::Renderer::Render_W2_Part2()
 
 						const Vector2 uvInterpolated{
 							(
-							((m_vertices_screenSpace[i].uv / m_vertices_screenSpace[i].position.z)			* weights[0]) +
-							((m_vertices_screenSpace[i + 1].uv / m_vertices_screenSpace[i + 1].position.z)	* weights[1]) +
-							((m_vertices_screenSpace[i + 2].uv / m_vertices_screenSpace[i + 2].position.z)	* weights[2])
+							((m_vertices_screenSpace[i].uv / m_vertices_screenSpace[i].position.z)			* weights[1]) +
+							((m_vertices_screenSpace[i + 1].uv / m_vertices_screenSpace[i + 1].position.z)	* weights[2]) +
+							((m_vertices_screenSpace[i + 2].uv / m_vertices_screenSpace[i + 2].position.z)	* weights[0])
 							) 
 							* interpolatedDepth
 						};
@@ -1006,7 +1006,7 @@ void dae::Renderer::ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out)
 	switch (mesh.primitiveTopology)
 	{
 	case PrimitiveTopology::TriangeList:
-		for (size_t i = 0; i < mesh.indices.size(); i++)
+		for (size_t i = 0; i < mesh.indices.size(); ++i)
 		{
 			vertices_out.emplace_back(mesh.vertices[mesh.indices[i]]);
 		}
