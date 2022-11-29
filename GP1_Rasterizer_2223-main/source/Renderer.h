@@ -42,7 +42,8 @@ namespace dae
 
 		void Render_W2_Part1(); //triangle list & strip
 		void Render_W2_Part2(); //uv
-		void Render_W2_Part2_2();
+
+		void Render_W3_Part1();
 
 		SDL_Window* m_pWindow{};
 
@@ -62,7 +63,9 @@ namespace dae
 
 		//Function that transforms the vertices from the mesh from World space to Screen space
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const; //W1 Version
-		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const; //W1 Version
+		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const; //W2 Version
+		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out, const Matrix& worldMatrix) const; //W3 Version
+
 
 		bool IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float (&weights)[3]) const;
 		BoundingBox GenerateBoundingBox(const Vector2 vertices[]) const;

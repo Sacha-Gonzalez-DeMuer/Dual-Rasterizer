@@ -55,8 +55,9 @@ void Renderer::Render()
 	//Render_W1_Part5();
 
 	//Render_W2_Part1(); //triangle list&strip
-	Render_W2_Part2();	//uv
-	//Render_W2_Part2_2(); //uv, reworking mesh parse
+	//Render_W2_Part2();	//uv
+
+	Render_W3_Part1();
 
 	//@END
 	//Update SDL Surface
@@ -487,7 +488,7 @@ void Renderer::Render_W1_Part5()
 }
 #pragma endregion
 
-
+#pragma region Week2
 void dae::Renderer::Render_W2_Part1()
 {
 	
@@ -732,130 +733,83 @@ void dae::Renderer::Render_W2_Part2()
 		}
 	}
 }
+#pragma endregion
 
-void dae::Renderer::Render_W2_Part2_2()
+void dae::Renderer::Render_W3_Part1()
 {
 	//meshes
-	std::vector<Mesh> meshes_world
-	{
-		Mesh {
-			{ //vertices
-				//pos		//color		//uv
-				{{-3,3,-2},		{},		{0,0}		},
-				{{0,3,-2},		{},		{.5f,0}		},
-				{{3,3,-2},		{},		{1,0}		},
-				{{-3,0,-2},		{},		{0,.5f}		},
-				{{0,0,-2},		{},		{.5f,.5f}	},
-				{{3,0,-2},		{},		{1,.5f}		},
-				{{-3,-3,-2},	{},		{0,1}		},
-				{{0,-3,-2},		{},		{.5f,1}		},
-				{{3,-3,-2},		{},		{1,1}		}
-			},
-
-			{ //indices
-				3,0,4,
-				0,1,4,
-				4,1,5,
-				1,2,5,
-				6,3,7,
-				3,4,7,
-				7,4,8,
-				4,5,8
-			},
-
-			PrimitiveTopology::TriangeList
+	const Mesh meshList{
+		{ //vertices
+			//pos		//color		//uv
+			{{-3,3,-2},		{},		{0,0}		},
+			{{0,3,-2},		{},		{.5f,0}		},
+			{{3,3,-2},		{},		{1,0}		},
+			{{-3,0,-2},		{},		{0,.5f}		},
+			{{0,0,-2},		{},		{.5f,.5f}	},
+			{{3,0,-2},		{},		{1,.5f}		},
+			{{-3,-3,-2},	{},		{0,1}		},
+			{{0,-3,-2},		{},		{.5f,1}		},
+			{{3,-3,-2},		{},		{1,1}		}
 		},
 
-		Mesh {
-			{ //vertices
-				//pos		//color		//uv
-				{{-3,3,-2},		{},		{0.f, 0.f}		},
-				{{0,3,-2},		{},		{.5f, 0.f}		},
-				{{3,3,-2},		{},		{1.f, 0.f}		},
-				{{-3,0,-2},		{},		{0.f, .5f}		},
-				{{0,0,-2},		{},		{.5f, .5f}		},
-				{{3,0,-2},		{},		{1.f, .5f}		},
-				{{-3,-3,-2},	{},		{0.f, 1.f}		},
-				{{0,-3,-2},		{},		{.5f, 1.f}		},
-				{{3,-3,-2},		{},		{1.f, 1.f}		}
-			},
+		{ //indices
+			3,0,4,
+			0,1,4,
+			4,1,5,
+			1,2,5,
+			6,3,7,
+			3,4,7,
+			7,4,8,
+			4,5,8
+		},
 
-			{ //indices
-				3,0,4,1,5,2,
-				2,6,
-				6,3,7,4,8,5
-			},
-
-			PrimitiveTopology::TriangleStrip
-		}
+		PrimitiveTopology::TriangeList
 	};
-	const uint32_t meshIdx{ 0 };
+	const Mesh meshStrip{
+		{ //vertices
+			//pos		//color		//uv
+			{{-3,3,-2},		{},		{0.f, 0.f}		},
+			{{0,3,-2},		{},		{.5f, 0.f}		},
+			{{3,3,-2},		{},		{1.f, 0.f}		},
+			{{-3,0,-2},		{},		{0.f, .5f}		},
+			{{0,0,-2},		{},		{.5f, .5f}		},
+			{{3,0,-2},		{},		{1.f, .5f}		},
+			{{-3,-3,-2},	{},		{0.f, 1.f}		},
+			{{0,-3,-2},		{},		{.5f, 1.f}		},
+			{{3,-3,-2},		{},		{1.f, 1.f}		}
+		},
 
-	//std::vector<Vertex> vertices_worldSpace{};
-	//for (Mesh m : stripMeshes_world) {
-	//	ParseMesh(m, vertices_worldSpace);
-	//}
+		{ //indices
+			3,0,4,1,5,2,
+			2,6,
+			6,3,7,4,8,5
+		},
+
+		PrimitiveTopology::TriangleStrip
+	};
+
+	Mesh usingMesh{ meshList };
+	std::vector<Vertex> vertices_worldSpace{};
+
+	ParseMesh(usingMesh, vertices_worldSpace);
 
 	//depth buffer
 	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
 	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
 
 	//world -> screen
-	VertexTransformationFunction(meshes_world[meshIdx].vertices, meshes_world[meshIdx].vertices_out);
+	VertexTransformationFunction(vertices_worldSpace, usingMesh.vertices_out, usingMesh.worldMatrix);
 
 	//for every tri
-	for (size_t i = meshes_world[meshIdx].primitiveTopology == PrimitiveTopology::TriangeList ? 0 : 2; 
-		i < meshes_world[meshIdx].indices.size(); ++i)
+	for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
 	{
-		const Vertex_Out vertices[3]
-		{
-			meshes_world[meshIdx].vertices_out[meshes_world[meshIdx].indices[i]],
-			meshes_world[meshIdx].vertices_out[meshes_world[meshIdx].indices[++i]],
-			meshes_world[meshIdx].vertices_out[meshes_world[meshIdx].indices[++i]]
-		};
-
-		const Vector2 verticePositions[3]
-		{
-			{ vertices[0].position.x, vertices[0].position.y },
-			{ vertices[1].position.x, vertices[1].position.y },
-			{ vertices[2].position.x, vertices[2].position.y }
-		};	  
-
-		/*if(i % 2 != 0)
-		{
-			vertices[0] = listMeshes_world[0].vertices[stripMeshes_world[0].indices[i - 2]];
-			verticePositions[0].x = vertices[0].position.x;
-			verticePositions[0].y = vertices[0].position.y;
-
-			if (i % 2 != 0)
-			{
-				vertices[1] = stripMeshes_world[0].vertices[stripMeshes_world[0].indices[i]];
-				verticePositions[1].x = vertices[1].position.x;
-				verticePositions[1].y = vertices[1].position.y;
-
-				vertices[2] = stripMeshes_world[0].vertices[stripMeshes_world[0].indices[i - 1]];
-				verticePositions[2].x = vertices[2].position.x;
-				verticePositions[2].y = vertices[2].position.y;
-			}
-			else
-			{
-				vertices[2] = stripMeshes_world[0].vertices[stripMeshes_world[0].indices[i]];
-				verticePositions[2].x = vertices[2].position.x;
-				verticePositions[2].y = vertices[2].position.y;
-
-				vertices[1] = stripMeshes_world[0].vertices[stripMeshes_world[0].indices[i - 1]];
-				verticePositions[1].x = vertices[1].position.x;
-				verticePositions[1].y = vertices[1].position.y;
-			}
-		}*/
-
 		//construct triangle
-		//const Vector2 vertices[3]{
-		//	{m_vertices_screenSpace[i].position.x, m_vertices_screenSpace[i].position.y},
-		//	{m_vertices_screenSpace[i + 1].position.x, m_vertices_screenSpace[i + 1].position.y},
-		//	{m_vertices_screenSpace[i + 2].position.x, m_vertices_screenSpace[i + 2].position.y} };
+		const Vector2 vertices[3]{
+			{usingMesh.vertices_out[i].position.x, usingMesh.vertices_out[i].position.y},
+			{usingMesh.vertices_out[i + 1].position.x, usingMesh.vertices_out[i + 1].position.y},
+			{usingMesh.vertices_out[i + 2].position.x, usingMesh.vertices_out[i + 2].position.y} };
 
-		const BoundingBox boundingBox{ GenerateBoundingBox(verticePositions) };
+		const BoundingBox boundingBox{ GenerateBoundingBox(vertices) };
 
 		//every pixel
 		for (int px{ boundingBox.minX }; px <= boundingBox.maxX; ++px)
@@ -868,24 +822,32 @@ void dae::Renderer::Render_W2_Part2_2()
 				ColorRGB finalColor{ 0, 0, 0 };
 
 				float weights[3]{};
-				if (IsPointInTri(pixelCoord, verticePositions, weights))
+				if (IsPointInTri(pixelCoord, vertices, weights))
 				{
 					//interpolate depth values
-					const float interpolatedDepth{
-						vertices[0].position.z * weights[0]
-						+ vertices[1].position.z * weights[1]
-						+ vertices[2].position.z * weights[2] };
-
+					const float interpolatedDepth
+					{
+						1 / (
+						((1 / usingMesh.vertices_out[i].position.w) * weights[1]) +
+						((1 / usingMesh.vertices_out[i + 1].position.w) * weights[2]) +
+						((1 / usingMesh.vertices_out[i + 2].position.w) * weights[0]))
+					};
 
 					if (interpolatedDepth < m_pDepthBufferPixels[pixelIdx])
 					{
 						m_pDepthBufferPixels[pixelIdx] = interpolatedDepth;
 
+						const Vector2 uvInterpolated{
+							(
+							((usingMesh.vertices_out[i].uv / usingMesh.vertices_out[i].position.w) * weights[1]) +
+							((usingMesh.vertices_out[i + 1].uv / usingMesh.vertices_out[i + 1].position.w) * weights[2]) +
+							((usingMesh.vertices_out[i + 2].uv / usingMesh.vertices_out[i + 2].position.w) * weights[0])
+							)
+							* interpolatedDepth
+						};
+
 						//color pixel according to uv
-						finalColor +=
-							m_pTexture->Sample(vertices[0].uv * weights[0])
-							+ m_pTexture->Sample(vertices[1].uv * weights[1])
-							+ m_pTexture->Sample(vertices[2].uv * weights[2]);
+						finalColor = m_pTexture->Sample(uvInterpolated);
 
 						//Update Color in Buffer
 						finalColor.MaxToOne();
@@ -899,6 +861,7 @@ void dae::Renderer::Render_W2_Part2_2()
 			}
 		}
 	}
+
 }
 
 
@@ -955,6 +918,31 @@ void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_
 	}
 }
 
+void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out, const Matrix& worldMatrix) const
+{
+	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
+	vertices_out.reserve(vertices_in.size());
+	const Matrix worldViewProjectionMatrix{ worldMatrix * m_Camera.viewMatrix * m_Camera.projectionMatrix };
+	
+	//Todo > W1 Projection Stage
+	for (int i = 0; i < vertices_in.size(); ++i)
+	{
+		const Vector4 verticesInPos{ vertices_in[i].position.x, vertices_in[i].position.y, vertices_in[i].position.z, vertices_in[i].position.z};
+		Vector4 transformedPos{ worldViewProjectionMatrix.TransformPoint(verticesInPos) };
+		
+		/*vertices_out[i].position.x = transformedPos.x;
+		vertices_out[i].position.y = transformedPos.y;
+		vertices_out[i].position.z = transformedPos.z;*/
+
+		//apply perspective divide
+		transformedPos.x /= transformedPos.w;
+		transformedPos.y /= transformedPos.w;
+
+		vertices_out[i].position = transformedPos;
+	}
+
+
+}
 
 bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float(&weights)[3]) const
 {
@@ -978,6 +966,7 @@ bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], flo
 
 	return true;
 }
+
 
 BoundingBox dae::Renderer::GenerateBoundingBox(const Vector2 vertices[]) const
 { 

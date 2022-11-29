@@ -31,7 +31,6 @@ namespace dae
 	{
 		//TODO
 		//Sample the correct texel for the given uv
-
 		Uint8 r{}, g{}, b{};
 
 		//[0,1] -> [0, w/h]
