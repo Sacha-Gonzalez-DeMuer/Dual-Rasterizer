@@ -45,6 +45,7 @@ namespace dae
 		Vector3& operator*=(float scale);
 		float& operator[](int index);
 		float operator[](int index) const;
+		bool operator==(const Vector3& v) const;
 
 		static const Vector3 UnitX;
 		static const Vector3 UnitY;

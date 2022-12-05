@@ -164,5 +164,9 @@ namespace dae {
 		if (index == 1) return y;
 		return z;
 	}
+	bool Vector3::operator==(const Vector3& v) const
+	{
+		return (x == v.x && y == v.y && z == v.z);
+	}
 #pragma endregion
 }

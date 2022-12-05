@@ -160,11 +160,12 @@ namespace dae {
 	Matrix Matrix::CreatePerspectiveFovLH(float fov, float aspect, float zn, float zf)
 	{
 		//TODO W2
-		const float xScale{1/(aspect+fov)};
+		const float xScale{1/(aspect*fov)};
 		const float yScale{1/fov};
 
+
 		const float A{ zf / (zf - zn) };
-		const float B{ -zn * zf / (zf - zn) };
+		const float B{ -(zf * zn) / (zf - zn) };
 
 		return {
 			{xScale, 0, 0, 0},
@@ -298,5 +299,11 @@ namespace dae {
 
 		return *this;
 	}
+
+	bool Matrix::operator!=(const Matrix& m) const
+	{
+		return (data[0] != m.data[0] || data[1] != m.data[1] || data[2] != m.data[2] || data[3] != m.data[3]);
+	}
+
 #pragma endregion
 }

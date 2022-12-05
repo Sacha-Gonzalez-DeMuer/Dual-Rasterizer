@@ -55,6 +55,13 @@ namespace dae
 
 		std::vector<Vertex> m_vertices_screenSpace;
 		Camera m_Camera{};
+		Matrix m_WorldMatrix{};
+		Matrix m_ViewMatrix{};
+		Matrix m_ProjectionMatrix{};
+
+		Matrix m_WorldViewProjectionMatrix{ };
+	
+		RenderMode m_CurrentRenderMode{ RenderMode::FinalColor };
 
 		Texture* m_pTexture{ nullptr };
 
@@ -64,12 +71,13 @@ namespace dae
 		//Function that transforms the vertices from the mesh from World space to Screen space
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const; //W1 Version
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const; //W2 Version
-		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out, const Matrix& worldMatrix) const; //W3 Version
+		void VertexTransformationFunction(Mesh& mesh); //W3 Version
 
-
+		bool IsVertexInFrustum(Vertex_Out v);
 		bool IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float (&weights)[3]) const;
 		BoundingBox GenerateBoundingBox(const Vector2 vertices[]) const;
 
 		void ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out);
+		void CycleRenderMode();
 	};
 }

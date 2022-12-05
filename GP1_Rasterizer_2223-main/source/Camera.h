@@ -26,6 +26,11 @@ namespace dae
 		float farPlane{ 100.f };
 		float aspectRatio{ 1.f };
 
+		float lastFOV{0};
+		float lastAspectRatio{0};
+		float lastPitch{0};
+		float lastYaw{0};
+		Vector3 lastOrigin{};
 
 		Vector3 forward{Vector3::UnitZ};
 		Vector3 up{Vector3::UnitY};
@@ -64,8 +69,8 @@ namespace dae
 		void CalculateProjectionMatrix()
 		{
 			//TODO W2
-
 			//ProjectionMatrix => Matrix::CreatePerspectiveFovLH(...) [not implemented yet]
+			projectionMatrix = Matrix::CreatePerspectiveFovLH(fov, aspectRatio, nearPlane, farPlane);
 			//DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixperspectivefovlh
 		}
 
@@ -97,27 +102,61 @@ namespace dae
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
 			origin += (pKeyboardState[SDL_SCANCODE_W] + -pKeyboardState[SDL_SCANCODE_S]) * constSpeed * forward;
 			origin += (-pKeyboardState[SDL_SCANCODE_A] + pKeyboardState[SDL_SCANCODE_D]) * constSpeed * right;
+			fov += (pKeyboardState[SDL_SCANCODE_SPACE]) * constSpeed * .3f;
+			fov -= (pKeyboardState[SDL_SCANCODE_P]) * constSpeed * .3f;
+
+		}
+
+		void UpdatePreviousTransforms() {
+			lastOrigin = origin;
+			lastPitch = totalPitch;
+			lastYaw = totalYaw;
+		}
+		
+		void UpdateCamSettings() {
+			lastFOV = fov;
+			lastAspectRatio = aspectRatio;
 		}
 
 		void Update(Timer* pTimer)
 		{
-			const float deltaTime = pTimer->GetElapsed();
-			const float constSpeed{ deltaTime * movementSpeed };
+			const float constSpeed{ pTimer->GetElapsed() * movementSpeed };
+
+			const bool isTransformUpToDate
+			{
+				lastPitch == totalPitch &&
+				lastYaw == totalYaw &&
+				lastOrigin == origin 
+			};
+
+
+			const bool isCamSettingsUpToDate
+			{
+				lastFOV == fov && lastAspectRatio == aspectRatio
+			};
 
 			//Camera Update Logic
 			//...
 			HandleMouseTransforms(constSpeed);
 			HandleKeyboardTransforms(constSpeed);
 
-			Matrix finalRotation{ Matrix::CreateRotation(totalPitch, totalYaw, 0) };
-			forward = finalRotation.TransformVector(Vector3::UnitZ).Normalized();
-			up = finalRotation.TransformVector(Vector3::UnitY).Normalized();
-			right = finalRotation.TransformVector(Vector3::UnitX).Normalized();
+			if (!isTransformUpToDate)
+			{
+				UpdatePreviousTransforms();
 
+				Matrix finalRotation{ Matrix::CreateRotation(totalPitch, totalYaw, 0) };
+				forward = finalRotation.TransformVector(Vector3::UnitZ).Normalized();
+				up = finalRotation.TransformVector(Vector3::UnitY).Normalized();
+				right = finalRotation.TransformVector(Vector3::UnitX).Normalized();
 
-			//Update Matrices
-			CalculateViewMatrix();
-			CalculateProjectionMatrix(); //Try to optimize this - should only be called once or when fov/aspectRatio changes
+				//Update Matrices
+				CalculateViewMatrix();
+			}
+
+			if (!isCamSettingsUpToDate) {
+				UpdateCamSettings();
+				CalculateProjectionMatrix(); 
+			}
 		}
 	};
 }

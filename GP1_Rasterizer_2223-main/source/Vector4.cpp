@@ -97,5 +97,9 @@ namespace dae
 		if (index == 2)return z;
 		return w;
 	}
+	bool Vector4::operator!=(const Vector4& v) const
+	{
+		return (x != v.x || y != v.y || z != v.z || w != v.w);
+	}
 #pragma endregion
 }

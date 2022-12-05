@@ -28,13 +28,18 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 
 	//Initialize Camera
-	m_Camera.Initialize(60.f, { .0f,.0f, -10.f });
+	m_Camera.Initialize(60.f, { .0f,.0f, -10.f }, 
+		(static_cast<float>(m_Width) / static_cast<float>(m_Height)));
+
 	m_pTexture = Texture::LoadFromFile("Resources/uv_grid_2.png");
 }
 
 Renderer::~Renderer()
 {
 	delete[] m_pDepthBufferPixels;
+
+	delete m_pTexture;
+	m_pTexture = nullptr;
 }
 
 void Renderer::Update(Timer* pTimer)
@@ -65,11 +70,6 @@ void Renderer::Render()
 	SDL_BlitSurface(m_pBackBuffer, 0, m_pFrontBuffer, 0);
 	SDL_UpdateWindowSurface(m_pWindow);
 }
-
-
-
-
-
 
 bool Renderer::SaveBufferToImage() const
 {	
@@ -547,7 +547,6 @@ void dae::Renderer::Render_W2_Part1()
 	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
 	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
 
-
 	//world -> screen
 	VertexTransformationFunction(vertices_worldSpace, m_vertices_screenSpace);
 
@@ -791,23 +790,38 @@ void dae::Renderer::Render_W3_Part1()
 	Mesh usingMesh{ meshList };
 	std::vector<Vertex> vertices_worldSpace{};
 
-	ParseMesh(usingMesh, vertices_worldSpace);
+	//if any transformation matrix changes, update worldViewProjectionMatrix
+	if (m_WorldMatrix != usingMesh.worldMatrix || m_ViewMatrix != m_Camera.viewMatrix || m_ProjectionMatrix != m_Camera.projectionMatrix) 
+	{
+		m_WorldMatrix = usingMesh.worldMatrix;
+		m_ViewMatrix = m_Camera.viewMatrix;
+		m_ProjectionMatrix = m_Camera.projectionMatrix;
+		m_WorldViewProjectionMatrix = m_WorldMatrix * m_ViewMatrix * m_ProjectionMatrix;
+	}
 
 	//depth buffer
 	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
 	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
 
 	//world -> screen
-	VertexTransformationFunction(vertices_worldSpace, usingMesh.vertices_out, usingMesh.worldMatrix);
+	VertexTransformationFunction(usingMesh);
+	const std::vector<Vertex_Out>& vertices_out{ usingMesh.vertices_out };
 
 	//for every tri
-	for (size_t i = 0; i < m_vertices_screenSpace.size(); i += 3)
+	for (size_t i = 0; i < vertices_out.size(); i += 3)
 	{
+		//frustum culling
+		//if any vertex is outside of frustum, skip triangle 
+		//if (!IsVertexInFrustum(vertices_out[i])) continue;
+		//if (!IsVertexInFrustum(vertices_out[i + 1])) continue;
+		//if (!IsVertexInFrustum(vertices_out[i + 2])) continue;
+
+
 		//construct triangle
 		const Vector2 vertices[3]{
-			{usingMesh.vertices_out[i].position.x, usingMesh.vertices_out[i].position.y},
-			{usingMesh.vertices_out[i + 1].position.x, usingMesh.vertices_out[i + 1].position.y},
-			{usingMesh.vertices_out[i + 2].position.x, usingMesh.vertices_out[i + 2].position.y} };
+			{vertices_out[i].position.x, vertices_out[i].position.y},
+			{vertices_out[i + 1].position.x, vertices_out[i + 1].position.y},
+			{vertices_out[i + 2].position.x, vertices_out[i + 2].position.y} };
 
 		const BoundingBox boundingBox{ GenerateBoundingBox(vertices) };
 
@@ -828,10 +842,11 @@ void dae::Renderer::Render_W3_Part1()
 					const float interpolatedDepth
 					{
 						1 / (
-						((1 / usingMesh.vertices_out[i].position.w) * weights[1]) +
-						((1 / usingMesh.vertices_out[i + 1].position.w) * weights[2]) +
-						((1 / usingMesh.vertices_out[i + 2].position.w) * weights[0]))
+						((1 / vertices_out[i].position.w) * weights[1]) +
+						((1 / vertices_out[i + 1].position.w) * weights[2]) +
+						((1 / vertices_out[i + 2].position.w) * weights[0]))
 					};
+
 
 					if (interpolatedDepth < m_pDepthBufferPixels[pixelIdx])
 					{
@@ -839,15 +854,24 @@ void dae::Renderer::Render_W3_Part1()
 
 						const Vector2 uvInterpolated{
 							(
-							((usingMesh.vertices_out[i].uv / usingMesh.vertices_out[i].position.w) * weights[1]) +
-							((usingMesh.vertices_out[i + 1].uv / usingMesh.vertices_out[i + 1].position.w) * weights[2]) +
-							((usingMesh.vertices_out[i + 2].uv / usingMesh.vertices_out[i + 2].position.w) * weights[0])
+							((vertices_out[i].uv / vertices_out[i].position.w) * weights[1]) +
+							((vertices_out[i + 1].uv / vertices_out[i + 1].position.w) * weights[2]) +
+							((vertices_out[i + 2].uv / vertices_out[i + 2].position.w) * weights[0])
 							)
 							* interpolatedDepth
 						};
 
-						//color pixel according to uv
-						finalColor = m_pTexture->Sample(uvInterpolated);
+						switch (m_CurrentRenderMode)
+						{
+						case dae::RenderMode::FinalColor:
+							//color pixel according to uv
+							finalColor = m_pTexture->Sample(uvInterpolated);
+							break;
+						case dae::RenderMode::DepthBuffer:
+
+							finalColor = ColorRGB( interpolatedDepth, interpolatedDepth, interpolatedDepth);
+							break;
+						}
 
 						//Update Color in Buffer
 						finalColor.MaxToOne();
@@ -861,10 +885,9 @@ void dae::Renderer::Render_W3_Part1()
 			}
 		}
 	}
-
 }
 
-
+//week 1
 void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
 {
 	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
@@ -889,6 +912,7 @@ void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_
 	}
 }
 
+//week 2
 void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const
 {
 	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
@@ -918,30 +942,45 @@ void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_
 	}
 }
 
-void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out, const Matrix& worldMatrix) const
+//week 3
+void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
-	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
-	vertices_out.reserve(vertices_in.size());
-	const Matrix worldViewProjectionMatrix{ worldMatrix * m_Camera.viewMatrix * m_Camera.projectionMatrix };
-	
-	//Todo > W1 Projection Stage
-	for (int i = 0; i < vertices_in.size(); ++i)
+	// Parse the mesh and store the vertices in world space
+	std::vector<Vertex> vertices_worldSpace{};
+	ParseMesh(mesh, vertices_worldSpace);
+
+	mesh.vertices_out.resize(vertices_worldSpace.size());
+
+	// Transform the vertices from world space to clip space
+	for (int i = 0; i < vertices_worldSpace.size(); ++i)
 	{
-		const Vector4 verticesInPos{ vertices_in[i].position.x, vertices_in[i].position.y, vertices_in[i].position.z, vertices_in[i].position.z};
-		Vector4 transformedPos{ worldViewProjectionMatrix.TransformPoint(verticesInPos) };
-		
-		/*vertices_out[i].position.x = transformedPos.x;
-		vertices_out[i].position.y = transformedPos.y;
-		vertices_out[i].position.z = transformedPos.z;*/
+		const Vector4 vertexPos{ vertices_worldSpace[i].position.x, vertices_worldSpace[i].position.y, vertices_worldSpace[i].position.z, 1 };
+		//world space -> clip space
+		mesh.vertices_out[i].position = m_WorldViewProjectionMatrix.TransformPoint(vertexPos);
 
-		//apply perspective divide
-		transformedPos.x /= transformedPos.w;
-		transformedPos.y /= transformedPos.w;
+		//apply perspective divide => clip space -> NDC space
+		mesh.vertices_out[i].position.x /= mesh.vertices_out[i].position.w;
+		mesh.vertices_out[i].position.y /= mesh.vertices_out[i].position.w;
+		mesh.vertices_out[i].position.z /= mesh.vertices_out[i].position.w;
 
-		vertices_out[i].position = transformedPos;
+		//NDC space -> screen space
+		mesh.vertices_out[i].position.x = (mesh.vertices_out[i].position.x + 1) / 2 * static_cast<float>(m_Width);
+		mesh.vertices_out[i].position.y = (1 - mesh.vertices_out[i].position.y) / 2 * static_cast<float>(m_Height);
+		mesh.vertices_out[i].position.w = mesh.vertices_out[i].position.w;
+
+		// Copy the UV coordinates from the input vertex
+		mesh.vertices_out[i].uv = vertices_worldSpace[i].uv;
 	}
+}
 
+bool dae::Renderer::IsVertexInFrustum(Vertex_Out v)
+{
+	bool IsInFrustum{ true };
+	if (v.position.x < -1 || v.position.x > 1) IsInFrustum = false;
+	if (v.position.y < -1 || v.position.y > 1) IsInFrustum = false;
+	if (v.position.z < 0 || v.position.z > 1)  IsInFrustum = false;
 
+	return IsInFrustum;
 }
 
 bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float(&weights)[3]) const
@@ -966,7 +1005,6 @@ bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], flo
 
 	return true;
 }
-
 
 BoundingBox dae::Renderer::GenerateBoundingBox(const Vector2 vertices[]) const
 { 
@@ -1021,7 +1059,13 @@ void dae::Renderer::ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out)
 	}
 }
 
-
+void dae::Renderer::CycleRenderMode()
+{
+	int current = static_cast<int>(m_CurrentRenderMode);
+	++current;
+	current = current % 2;
+	m_CurrentRenderMode = static_cast<RenderMode>(current);
+}
 
 
 

@@ -55,6 +55,7 @@ namespace dae {
 		Vector4 operator[](int index) const;
 		Matrix operator*(const Matrix& m) const;
 		const Matrix& operator*=(const Matrix& m);
+		bool operator !=(const Matrix& m) const;
 
 	private:
 
