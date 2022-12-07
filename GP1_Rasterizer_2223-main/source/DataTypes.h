@@ -57,5 +57,11 @@ namespace dae
 	struct Triangle
 	{
 		Vertex_Out vertices[3]{};
+		float recipTotalArea{};
+
+		Vector2 GetVector2Pos(int idx) const 
+		{ 
+			return { vertices[idx].position.x, vertices[idx].position.y };
+		};
 	};
 }

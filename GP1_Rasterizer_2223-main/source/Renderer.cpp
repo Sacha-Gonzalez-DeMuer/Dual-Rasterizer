@@ -28,7 +28,7 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 
 	//Initialize Camera
-	m_Camera.Initialize(60.f, { .0f, 5.f, -30.f }, 
+	m_Camera.Initialize(60.f, { .0f, 5.f, -30.f },
 		(static_cast<float>(m_Width) / static_cast<float>(m_Height)));
 
 	m_pTexture = Texture::LoadFromFile("Resources/uv_grid_2.png");
@@ -97,10 +97,10 @@ void dae::Renderer::InitializeMesh()
 		PrimitiveTopology::TriangleStrip
 	};
 
-	//m_Mesh = meshList;
+	m_Mesh = meshList;
+	ParseMesh(m_Mesh); 
 
 	Utils::ParseOBJ("Resources/tuktuk.obj", m_Mesh.vertices, m_Mesh.indices, false);
-	m_Mesh.primitiveTopology = PrimitiveTopology::TriangleStrip;
 }
 
 
@@ -139,17 +139,12 @@ void dae::Renderer::RenderLoop()
 
 	//world -> NDC
 	VertexTransformationFunction(m_Mesh);
-	std::vector<Vertex_Out>& vertices_NDC{ m_Mesh.vertices_out }; //in NDC space
 
-	Triangle t{};
 	//for every tri
-	for (size_t i = 0; i < vertices_NDC.size(); i += 3)
+	for (size_t i = 0; i < m_Mesh.vertices_out.size(); i += 3)
 	{
 		//Construct Triangle
-		t.vertices[0] = vertices_NDC[i];
-		t.vertices[1] = vertices_NDC[i + 1];
-		t.vertices[2] = vertices_NDC[i + 2];
-		
+		Triangle t{ { m_Mesh.vertices_out[i], m_Mesh.vertices_out[i + 1], m_Mesh.vertices_out[i + 2] } };
 		if (!IsTriangleInFrustum(t)) continue;
 
 		for (size_t j = 0; j < 3; j++)
@@ -158,6 +153,8 @@ void dae::Renderer::RenderLoop()
 			t.vertices[j].position.x = (t.vertices[j].position.x + 1) / 2 * static_cast<float>(m_Width);
 			t.vertices[j].position.y = (1 - t.vertices[j].position.y) / 2 * static_cast<float>(m_Height);
 		}
+
+		t.recipTotalArea = 1 / Vector2::Cross(t.GetVector2Pos(0) - t.GetVector2Pos(1), t.GetVector2Pos(0) - t.GetVector2Pos(2));
 		
 		const BoundingBox boundingBox{ GenerateBoundingBox(t) };
 		
@@ -172,7 +169,7 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 		for (int py{ bb.minY }; py <= bb.maxY; ++py)
 		{
 			//pixel values
-			const int pixelIdx{ px + py * m_Width };
+			const int pixelIdx{ px + (py * m_Width) };
 			const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
 			ColorRGB finalColor{ 0, 0, 0 };
 
@@ -181,24 +178,25 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 			{
 				const float interpolatedDepthZ
 				{
-					1 / (
-					((1 / t.vertices[0].position.z) * weights[1]) +
-					((1 / t.vertices[1].position.z) * weights[2]) +
-					((1 / t.vertices[2].position.z) * weights[0]))
+					((t.vertices[0].position.z * weights[1]) +
+					 (t.vertices[1].position.z * weights[2]) +
+					 (t.vertices[2].position.z * weights[0])) 
+					/ 1
 				};
 
-				if (interpolatedDepthZ < m_pDepthBufferPixels[pixelIdx])
+
+				if (interpolatedDepthZ > 0.f && interpolatedDepthZ < 1.f && interpolatedDepthZ < m_pDepthBufferPixels[pixelIdx]) 
 				{
 					m_pDepthBufferPixels[pixelIdx] = interpolatedDepthZ;
 
-					//interpolate depth values
 					const float interpolatedDepthW
 					{
-						1 / (
-						((1 / t.vertices[0].position.w) * weights[1]) +
-						((1 / t.vertices[1].position.w) * weights[2]) +
-						((1 / t.vertices[2].position.w) * weights[0]))
+						((t.vertices[0].position.w * weights[1]) +
+						 (t.vertices[1].position.w * weights[2]) +
+						 (t.vertices[2].position.w * weights[0])) 
+						/ 1
 					};
+
 					const Vector2 uvInterpolated{
 						(
 						((t.vertices[0].uv / t.vertices[0].position.w) * weights[1]) +
@@ -211,7 +209,6 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 					switch (m_CurrentRenderMode)
 					{
 					case dae::RenderMode::FinalColor:
-						//color pixel according to uv
 						finalColor = m_pTexture->Sample(uvInterpolated);
 						break;
 					case dae::RenderMode::DepthBuffer:
@@ -227,37 +224,37 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 						static_cast<uint8_t>(finalColor.r * 255),
 						static_cast<uint8_t>(finalColor.g * 255),
 						static_cast<uint8_t>(finalColor.b * 255));
-				}
+				};
+				
+
+				
 			}
 		}
 	}
 }
 
-
 //Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
 void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
-	// Parse the mesh and store the vertices in world space
-	std::vector<Vertex> vertices_worldSpace{};
-	ParseMesh(mesh, vertices_worldSpace);
-
-	mesh.vertices_out.resize(vertices_worldSpace.size());
+	mesh.vertices_out.resize(mesh.vertices.size());
 
 	// Transform the vertices from world space to clip space
-	for (int i = 0; i < vertices_worldSpace.size(); ++i)
+	for (int i = 0; i < mesh.vertices.size(); ++i)
 	{
-		mesh.vertices_out[i].position = { vertices_worldSpace[i].position.x, vertices_worldSpace[i].position.y, vertices_worldSpace[i].position.z, 1 };
+		mesh.vertices_out[i].position = { mesh.vertices[i].position.x, mesh.vertices[i].position.y, mesh.vertices[i].position.z, 1 };
 
 		//world space -> clip space
 		mesh.vertices_out[i].position = m_WorldViewProjectionMatrix.TransformPoint(mesh.vertices_out[i].position);
 
+		const float recipW{ 1 / mesh.vertices_out[i].position.w };
+
 		//apply perspective divide => clip space -> NDC space
-		mesh.vertices_out[i].position.x /= mesh.vertices_out[i].position.w;
-		mesh.vertices_out[i].position.y /= mesh.vertices_out[i].position.w;
-		mesh.vertices_out[i].position.z /= mesh.vertices_out[i].position.w;
+		mesh.vertices_out[i].position.x *= recipW;
+		mesh.vertices_out[i].position.y *= recipW;
+		mesh.vertices_out[i].position.z *= recipW;
 
 		// Copy the UV coordinates from the input vertex
-		mesh.vertices_out[i].uv = vertices_worldSpace[i].uv;
+		mesh.vertices_out[i].uv = mesh.vertices[i].uv;
 	}
 }
 
@@ -284,30 +281,18 @@ bool dae::Renderer::IsTriangleInFrustum(const Triangle& t)
 //checks if point is in 2D triangle and stores barycentric weights in given array
 bool dae::Renderer::IsPointInTri(Vector2 P, const Triangle& t, float(&weights)[3]) const
 {
-	const Vector2 positions[3]
-	{
-		{t.vertices[0].position.x, t.vertices[0].position.y},
-		{t.vertices[1].position.x, t.vertices[1].position.y},
-		{t.vertices[2].position.x, t.vertices[2].position.y}
-	};
-
 	const Vector2 edges[3]
 	{
-		positions[1] - positions[0],
-		positions[2] - positions[1],
-		positions[0] - positions[2]
+		t.GetVector2Pos(1) - t.GetVector2Pos(0),
+		t.GetVector2Pos(2) - t.GetVector2Pos(1),
+		t.GetVector2Pos(0) - t.GetVector2Pos(2)
 	};
-
-	Vector3 pointToSide{};
-	const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
-
+	
 	for (int i = 0; i < 3; ++i)
 	{
-		pointToSide.x = P.x - positions[i].x;
-		pointToSide.y = P.y - positions[i].y;
-
+		const Vector2 pointToSide{ P - t.GetVector2Pos(i) };
 		const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
-		weights[i] = cross / totalArea;
+		weights[i] = cross * t.recipTotalArea;
 		if (cross < 0) return false;
 	}
 
@@ -337,7 +322,7 @@ BoundingBox dae::Renderer::GenerateBoundingBox(const Triangle t) const
 
 float dae::Renderer::Remap(float value, float rangeMin, float rangeMax)
 {
-	return  (rangeMax - rangeMin) / (rangeMax - value);
+	return (value - rangeMin) / (rangeMax - rangeMin);
 }
 
 void dae::Renderer::UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, const Matrix& viewMatrix, const Matrix& projectionMatrix)
@@ -352,35 +337,39 @@ void dae::Renderer::UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, c
 	}
 }
 
-void dae::Renderer::ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out)
+void dae::Renderer::ParseMesh(Mesh& mesh)
 {
+	std::vector<Vertex> tmp{};
+
 	switch (mesh.primitiveTopology)
 	{
 	case PrimitiveTopology::TriangeList:
 		for (size_t i = 0; i < mesh.indices.size(); ++i)
 		{
-			vertices_out.emplace_back(mesh.vertices[mesh.indices[i]]);
+			tmp.emplace_back(mesh.vertices[mesh.indices[i]]);
 		}
 		break;
 
 	case PrimitiveTopology::TriangleStrip:
 		for (size_t i = 2; i < mesh.indices.size(); ++i)
 		{
-			vertices_out.emplace_back(mesh.vertices[mesh.indices[i - 2]]);
+			tmp.emplace_back(mesh.vertices[mesh.indices[i - 2]]);
 
 			if (i % 2 != 0)
 			{
-				vertices_out.emplace_back(mesh.vertices[mesh.indices[i]]);
-				vertices_out.emplace_back(mesh.vertices[mesh.indices[i - 1]]);
+				tmp.emplace_back(mesh.vertices[mesh.indices[i]]);
+				tmp.emplace_back(mesh.vertices[mesh.indices[i - 1]]);
 			}
 			else
 			{
-				vertices_out.emplace_back(mesh.vertices[mesh.indices[i - 1]]);
-				vertices_out.emplace_back(mesh.vertices[mesh.indices[i]]);
+				tmp.emplace_back(mesh.vertices[mesh.indices[i - 1]]);
+				tmp.emplace_back(mesh.vertices[mesh.indices[i]]);
 			}
 		}
 		break;
 	}
+
+	mesh.vertices = tmp;
 }
 
 void dae::Renderer::CycleRenderMode()

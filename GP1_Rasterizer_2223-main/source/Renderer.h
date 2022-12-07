@@ -64,7 +64,7 @@ namespace dae
 		void InitializeMesh();
 		void VertexTransformationFunction(Mesh& mesh); 
 		void UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, const Matrix& viewMatrix, const Matrix& projectionMatrix);
-		void ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out);
+		void ParseMesh(Mesh& mesh);
 		
 		bool IsVertexInFrustum(const Vertex_Out& v);
 		bool IsTriangleInFrustum(const Triangle& t);
