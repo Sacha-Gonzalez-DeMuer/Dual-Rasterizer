@@ -803,27 +803,33 @@ void dae::Renderer::Render_W3_Part1()
 	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
 	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
 
-	//world -> screen
+	//world -> NDC
 	VertexTransformationFunction(usingMesh);
-	const std::vector<Vertex_Out>& vertices_out{ usingMesh.vertices_out };
+	std::vector<Vertex_Out>& vertices_out{ usingMesh.vertices_out }; //in NDC space
 
 	//for every tri
 	for (size_t i = 0; i < vertices_out.size(); i += 3)
 	{
-		//frustum culling
-		//if any vertex is outside of frustum, skip triangle 
-		//if (!IsVertexInFrustum(vertices_out[i])) continue;
-		//if (!IsVertexInFrustum(vertices_out[i + 1])) continue;
-		//if (!IsVertexInFrustum(vertices_out[i + 2])) continue;
+		for (size_t j = 0; j < 3; j++)
+		{
+			if (!IsVertexInFrustum(vertices_out[i + j])) break;
 
+			//NDC space -> screen space
+			vertices_out[i+j].position.x = (vertices_out[i+j].position.x + 1) / 2 * static_cast<float>(m_Width);
+			vertices_out[i+j].position.y = (1 - vertices_out[i+j].position.y) / 2 * static_cast<float>(m_Height);
+			vertices_out[i+j].position.w = vertices_out[i+j].position.w;
+		}
 
-		//construct triangle
-		const Vector2 vertices[3]{
+		//Construct Triangle
+		const Triangle t{ vertices_out[i], vertices_out[i + 1], vertices_out[i + 2] };
+
+		//construct screenspace (2D) triangle -> bounding box generation & check if pixel is in triangle
+		const Vector2 vertices2D[3]{
 			{vertices_out[i].position.x, vertices_out[i].position.y},
 			{vertices_out[i + 1].position.x, vertices_out[i + 1].position.y},
 			{vertices_out[i + 2].position.x, vertices_out[i + 2].position.y} };
 
-		const BoundingBox boundingBox{ GenerateBoundingBox(vertices) };
+		const BoundingBox boundingBox{ GenerateBoundingBox(vertices2D) };
 
 		//every pixel
 		for (int px{ boundingBox.minX }; px <= boundingBox.maxX; ++px)
@@ -836,7 +842,7 @@ void dae::Renderer::Render_W3_Part1()
 				ColorRGB finalColor{ 0, 0, 0 };
 
 				float weights[3]{};
-				if (IsPointInTri(pixelCoord, vertices, weights))
+				if (IsPointInTri(pixelCoord, vertices2D, weights))
 				{
 					//interpolate depth values
 					const float interpolatedDepth
@@ -943,6 +949,58 @@ void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_
 }
 
 //week 3
+/* 
+void Renderer::VertexTransformationFunction(Mesh& mesh)
+{
+	// Parse the mesh and store the vertices in world space
+	std::vector<Vertex> vertices_worldSpace{};
+	ParseMesh(mesh, vertices_worldSpace);
+
+	mesh.vertices_out.resize(vertices_worldSpace.size());
+
+	size_t vertOutIdx{ 0 };
+
+	// Transform the vertices from world space to clip space
+	for (int i = 0; i < vertices_worldSpace.size(); i += 3)
+	{
+		Vector4 vertexPos[3]{};
+		Vector4 clipSpacePos[3]{};
+		
+		//frustum culling
+		//if any vertex is outside of frustum, skip triangle
+		for (size_t j = 0; j < 3; j++)
+		{
+			vertexPos[j] = {vertices_worldSpace[i + j].position.x, vertices_worldSpace[i + j].position.y, vertices_worldSpace[i + j].position.z, 1};
+
+			//world space -> clip space
+			clipSpacePos[j] = {m_WorldViewProjectionMatrix.TransformPoint(vertexPos[j])};
+
+			//apply perspective divide => clip space -> NDC space
+			clipSpacePos[j].x /= clipSpacePos[j].w;
+			clipSpacePos[j].y /= clipSpacePos[j].w;
+			clipSpacePos[j].z /= clipSpacePos[j].w;
+
+			if (!IsVertexInFrustum(clipSpacePos[j]))
+				break;
+		}
+		
+		for (size_t j = 0; j < 3; j++)
+		{
+			mesh.vertices_out[vertOutIdx].position = clipSpacePos[j];
+
+			//NDC space -> screen space
+			mesh.vertices_out[vertOutIdx].position.x = (mesh.vertices_out[vertOutIdx].position.x + 1) / 2 * static_cast<float>(m_Width);
+			mesh.vertices_out[vertOutIdx].position.y = (1 - mesh.vertices_out[vertOutIdx].position.y) / 2 * static_cast<float>(m_Height);
+			mesh.vertices_out[vertOutIdx].position.w = mesh.vertices_out[vertOutIdx].position.w;
+
+			// Copy the UV coordinates from the input vertex
+			mesh.vertices_out[vertOutIdx].uv = vertices_worldSpace[vertOutIdx].uv;
+
+			++vertOutIdx;
+		}
+	}
+}*/
+
 void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
 	// Parse the mesh and store the vertices in world space
@@ -954,33 +1012,37 @@ void Renderer::VertexTransformationFunction(Mesh& mesh)
 	// Transform the vertices from world space to clip space
 	for (int i = 0; i < vertices_worldSpace.size(); ++i)
 	{
-		const Vector4 vertexPos{ vertices_worldSpace[i].position.x, vertices_worldSpace[i].position.y, vertices_worldSpace[i].position.z, 1 };
+		mesh.vertices_out[i].position = { vertices_worldSpace[i].position.x, vertices_worldSpace[i].position.y, vertices_worldSpace[i].position.z, 1 };
+
 		//world space -> clip space
-		mesh.vertices_out[i].position = m_WorldViewProjectionMatrix.TransformPoint(vertexPos);
+		mesh.vertices_out[i].position = m_WorldViewProjectionMatrix.TransformPoint(mesh.vertices_out[i].position);
 
 		//apply perspective divide => clip space -> NDC space
 		mesh.vertices_out[i].position.x /= mesh.vertices_out[i].position.w;
 		mesh.vertices_out[i].position.y /= mesh.vertices_out[i].position.w;
 		mesh.vertices_out[i].position.z /= mesh.vertices_out[i].position.w;
 
-		//NDC space -> screen space
-		mesh.vertices_out[i].position.x = (mesh.vertices_out[i].position.x + 1) / 2 * static_cast<float>(m_Width);
-		mesh.vertices_out[i].position.y = (1 - mesh.vertices_out[i].position.y) / 2 * static_cast<float>(m_Height);
-		mesh.vertices_out[i].position.w = mesh.vertices_out[i].position.w;
-
 		// Copy the UV coordinates from the input vertex
 		mesh.vertices_out[i].uv = vertices_worldSpace[i].uv;
 	}
 }
 
-bool dae::Renderer::IsVertexInFrustum(Vertex_Out v)
+bool dae::Renderer::IsVertexInFrustum(const Vertex_Out& v)
 {
-	bool IsInFrustum{ true };
-	if (v.position.x < -1 || v.position.x > 1) IsInFrustum = false;
-	if (v.position.y < -1 || v.position.y > 1) IsInFrustum = false;
-	if (v.position.z < 0 || v.position.z > 1)  IsInFrustum = false;
+	if (v.position.x < -1 || v.position.x > 1) return false;
+	if (v.position.y < -1 || v.position.y > 1) return false;
+	if (v.position.z < 0 || v.position.z > 1) return false;
 
-	return IsInFrustum;
+	return true;
+}
+
+bool dae::Renderer::IsVertexInFrustum(const Vector4 v)
+{
+	if (v.x < -1 || v.x > 1) return false;
+	if (v.y < -1 || v.y > 1) return false;
+	if (v.z < 0 || v.z > 1)  return false;
+
+	return true;
 }
 
 bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float(&weights)[3]) const
@@ -1025,6 +1087,22 @@ BoundingBox dae::Renderer::GenerateBoundingBox(const Vector2 vertices[]) const
 	if (boundingBox.maxY > m_Height) boundingBox.maxY = m_Height;
 
 	return boundingBox;
+}
+
+BoundingBox dae::Renderer::GenerateBoundingBox(const Triangle t) const
+{
+	BoundingBox boundingBox{};
+
+	for (size_t i = 0; i < 3; i++)
+	{
+		boundingBox.minX = std::min(int(t.vertices[i].position.x), boundingBox.minX);
+		boundingBox.minY = std::min(int(t.vertices[i].position.y), boundingBox.minY);
+
+		boundingBox.maxX = std::max(int(t.vertices[i].position.x), boundingBox.maxX);
+		boundingBox.maxY = std::max(int(t.vertices[i].position.y), boundingBox.maxY);
+	}
+
+	return BoundingBox();
 }
 
 

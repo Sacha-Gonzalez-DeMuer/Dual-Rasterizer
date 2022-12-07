@@ -53,4 +53,9 @@ namespace dae
 		std::vector<Vertex_Out> vertices_out{};
 		Matrix worldMatrix{};
 	};
+
+	struct Triangle
+	{
+		Vertex_Out vertices[3]{};
+	};
 }

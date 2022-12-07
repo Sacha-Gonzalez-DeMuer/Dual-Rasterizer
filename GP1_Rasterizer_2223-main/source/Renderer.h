@@ -71,11 +71,16 @@ namespace dae
 		//Function that transforms the vertices from the mesh from World space to Screen space
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const; //W1 Version
 		void VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const; //W2 Version
-		void VertexTransformationFunction(Mesh& mesh); //W3 Version
+		
+		void VertexTransformationFunction(Mesh& mesh); //W3 Version - worldviewprojection
 
-		bool IsVertexInFrustum(Vertex_Out v);
+		bool IsVertexInFrustum(const Vertex_Out& v);
+		bool IsVertexInFrustum(const Vector4 v);
+
 		bool IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float (&weights)[3]) const;
 		BoundingBox GenerateBoundingBox(const Vector2 vertices[]) const;
+		BoundingBox GenerateBoundingBox(const Triangle t) const;
+
 
 		void ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out);
 		void CycleRenderMode();
