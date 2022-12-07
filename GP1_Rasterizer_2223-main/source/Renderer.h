@@ -32,6 +32,7 @@ namespace dae
 		void Render();
 
 		bool SaveBufferToImage() const;
+		void CycleRenderMode();
 
 	private:
 		void Render_W1_Part1();
@@ -44,6 +45,7 @@ namespace dae
 		void Render_W2_Part2(); //uv
 
 		void Render_W3_Part1();
+		void PixelLoop(const Triangle& t, const BoundingBox& bb);
 
 		SDL_Window* m_pWindow{};
 
@@ -61,7 +63,7 @@ namespace dae
 
 		Matrix m_WorldViewProjectionMatrix{ };
 	
-		RenderMode m_CurrentRenderMode{ RenderMode::FinalColor };
+		RenderMode m_CurrentRenderMode{ RenderMode::DepthBuffer };
 
 		Texture* m_pTexture{ nullptr };
 
@@ -76,13 +78,17 @@ namespace dae
 
 		bool IsVertexInFrustum(const Vertex_Out& v);
 		bool IsVertexInFrustum(const Vector4 v);
+		bool IsTriangleInFrustum(const Triangle& t);
 
 		bool IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float (&weights)[3]) const;
+		bool IsPointInTri(Vector2 P, const Triangle& t, float(&weights)[3]) const;
+
 		BoundingBox GenerateBoundingBox(const Vector2 vertices[]) const;
 		BoundingBox GenerateBoundingBox(const Triangle t) const;
 
+		float Remap(float value, float rangeMin, float rangeMax);
 
+		void UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, const Matrix& viewMatrix, const Matrix& projectionMatrix);
 		void ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out);
-		void CycleRenderMode();
 	};
 }

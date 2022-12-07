@@ -486,6 +486,33 @@ void Renderer::Render_W1_Part5()
 		}
 	}
 }
+
+
+
+//week 1
+void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
+{
+	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
+	vertices_out = vertices_in;
+	//Todo > W1 Projection Stage
+	for (int i = 0; i < vertices_in.size(); ++i)
+	{
+		//transform vertices to viewSpace
+		vertices_out[i].position = m_Camera.viewMatrix.TransformPoint(vertices_in[i].position);
+
+		//apply perspective divide
+		vertices_out[i].position.x = vertices_out[i].position.x / vertices_out[i].position.z;
+		vertices_out[i].position.y = vertices_out[i].position.y / vertices_out[i].position.z;
+
+		//project
+		vertices_out[i].position.x = vertices_out[i].position.x / (aspectRatio * m_Camera.fov);
+		vertices_out[i].position.y = vertices_out[i].position.y / m_Camera.fov;
+
+		//to screen space
+		vertices_out[i].position.x = (vertices_out[i].position.x + 1) / 2 * static_cast<float>(m_Width);
+		vertices_out[i].position.y = (1 - vertices_out[i].position.y) / 2 * static_cast<float>(m_Height);
+	}
+}
 #pragma endregion
 
 #pragma region Week2
@@ -732,8 +759,84 @@ void dae::Renderer::Render_W2_Part2()
 		}
 	}
 }
+
+void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const
+{
+	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
+	vertices_out.reserve(vertices_in.size());
+
+	//Todo > W1 Projection Stage
+	for (int i = 0; i < vertices_in.size(); ++i)
+	{
+		Vector3 transformedPos{ m_Camera.viewMatrix.TransformPoint(vertices_in[i].position) };
+		//transform vertices to viewSpace
+		vertices_out[i].position.x = transformedPos.x;
+		vertices_out[i].position.y = transformedPos.y;
+		vertices_out[i].position.z = transformedPos.z;
+
+
+		//apply perspective divide
+		vertices_out[i].position.x = vertices_out[i].position.x / vertices_out[i].position.z;
+		vertices_out[i].position.y = vertices_out[i].position.y / vertices_out[i].position.z;
+
+		//project
+		vertices_out[i].position.x = vertices_out[i].position.x / (aspectRatio * m_Camera.fov);
+		vertices_out[i].position.y = vertices_out[i].position.y / m_Camera.fov;
+
+		//to screen space
+		vertices_out[i].position.x = (vertices_out[i].position.x + 1) / 2 * static_cast<float>(m_Width);
+		vertices_out[i].position.y = (1 - vertices_out[i].position.y) / 2 * static_cast<float>(m_Height);
+	}
+}
+
+BoundingBox dae::Renderer::GenerateBoundingBox(const Vector2 vertices[]) const
+{
+	BoundingBox boundingBox{};
+
+	for (size_t i = 0; i < 3; i++)
+	{
+		boundingBox.minX = std::min(int(vertices[i].x), boundingBox.minX);
+		boundingBox.minY = std::min(int(vertices[i].y), boundingBox.minY);
+
+		boundingBox.maxX = std::max(int(vertices[i].x), boundingBox.maxX);
+		boundingBox.maxY = std::max(int(vertices[i].y), boundingBox.maxY);
+	}
+
+	if (boundingBox.minX < 0) boundingBox.minX = 0;
+	if (boundingBox.maxX > m_Width) boundingBox.maxX = m_Width;
+	if (boundingBox.minY < 0) boundingBox.minY = 0;
+	if (boundingBox.maxY > m_Height) boundingBox.maxY = m_Height;
+
+	return boundingBox;
+}
+
+bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float(&weights)[3]) const
+{
+	const Vector2 edges[3]{
+		vertexPositions[1] - vertexPositions[0],
+		vertexPositions[2] - vertexPositions[1],
+		vertexPositions[0] - vertexPositions[2] };
+
+	Vector3 pointToSide{};
+	const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
+
+	for (int i = 0; i < 3; ++i)
+	{
+		pointToSide.x = P.x - vertexPositions[i].x;
+		pointToSide.y = P.y - vertexPositions[i].y;
+
+		const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+		weights[i] = cross / totalArea;
+		if (cross < 0) return false;
+	}
+
+	return true;
+}
+
 #pragma endregion
 
+
+#pragma region Week3
 void dae::Renderer::Render_W3_Part1()
 {
 	//meshes
@@ -790,14 +893,7 @@ void dae::Renderer::Render_W3_Part1()
 	Mesh usingMesh{ meshList };
 	std::vector<Vertex> vertices_worldSpace{};
 
-	//if any transformation matrix changes, update worldViewProjectionMatrix
-	if (m_WorldMatrix != usingMesh.worldMatrix || m_ViewMatrix != m_Camera.viewMatrix || m_ProjectionMatrix != m_Camera.projectionMatrix) 
-	{
-		m_WorldMatrix = usingMesh.worldMatrix;
-		m_ViewMatrix = m_Camera.viewMatrix;
-		m_ProjectionMatrix = m_Camera.projectionMatrix;
-		m_WorldViewProjectionMatrix = m_WorldMatrix * m_ViewMatrix * m_ProjectionMatrix;
-	}
+	UpdateWorldViewProjectionMatrix(usingMesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
 
 	//depth buffer
 	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
@@ -805,202 +901,102 @@ void dae::Renderer::Render_W3_Part1()
 
 	//world -> NDC
 	VertexTransformationFunction(usingMesh);
-	std::vector<Vertex_Out>& vertices_out{ usingMesh.vertices_out }; //in NDC space
+	std::vector<Vertex_Out>& vertices_NDC{ usingMesh.vertices_out }; //in NDC space
 
+	Triangle t{};
 	//for every tri
-	for (size_t i = 0; i < vertices_out.size(); i += 3)
+	for (size_t i = 0; i < vertices_NDC.size(); i += 3)
 	{
+		//Construct Triangle
+		t.vertices[0] = vertices_NDC[i];
+		t.vertices[1] = vertices_NDC[i + 1];
+		t.vertices[2] = vertices_NDC[i + 2];
+		
+		if (!IsTriangleInFrustum(t)) continue;
+
 		for (size_t j = 0; j < 3; j++)
 		{
-			if (!IsVertexInFrustum(vertices_out[i + j])) break;
-
 			//NDC space -> screen space
-			vertices_out[i+j].position.x = (vertices_out[i+j].position.x + 1) / 2 * static_cast<float>(m_Width);
-			vertices_out[i+j].position.y = (1 - vertices_out[i+j].position.y) / 2 * static_cast<float>(m_Height);
-			vertices_out[i+j].position.w = vertices_out[i+j].position.w;
+			t.vertices[j].position.x = (t.vertices[j].position.x + 1) / 2 * static_cast<float>(m_Width);
+			t.vertices[j].position.y = (1 - t.vertices[j].position.y) / 2 * static_cast<float>(m_Height);
 		}
+		
+		const BoundingBox boundingBox{ GenerateBoundingBox(t) };
+		
+		PixelLoop(t, boundingBox);
+	}
+}
 
-		//Construct Triangle
-		const Triangle t{ vertices_out[i], vertices_out[i + 1], vertices_out[i + 2] };
-
-		//construct screenspace (2D) triangle -> bounding box generation & check if pixel is in triangle
-		const Vector2 vertices2D[3]{
-			{vertices_out[i].position.x, vertices_out[i].position.y},
-			{vertices_out[i + 1].position.x, vertices_out[i + 1].position.y},
-			{vertices_out[i + 2].position.x, vertices_out[i + 2].position.y} };
-
-		const BoundingBox boundingBox{ GenerateBoundingBox(vertices2D) };
-
-		//every pixel
-		for (int px{ boundingBox.minX }; px <= boundingBox.maxX; ++px)
+void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
+{
+	for (int px{ bb.minX }; px <= bb.maxX; ++px)
+	{
+		for (int py{ bb.minY }; py <= bb.maxY; ++py)
 		{
-			for (int py{ boundingBox.minY }; py <= boundingBox.maxY; ++py)
-			{
-				//pixel values
-				const int pixelIdx{ px + py * m_Width };
-				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
-				ColorRGB finalColor{ 0, 0, 0 };
+			//pixel values
+			const int pixelIdx{ px + py * m_Width };
+			const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+			ColorRGB finalColor{ 0, 0, 0 };
 
-				float weights[3]{};
-				if (IsPointInTri(pixelCoord, vertices2D, weights))
+			float weights[3]{};
+			if (IsPointInTri(pixelCoord, t, weights))
+			{
+				const float interpolatedDepthZ
 				{
-					//interpolate depth values
-					const float interpolatedDepth
-					{
-						1 / (
-						((1 / vertices_out[i].position.w) * weights[1]) +
-						((1 / vertices_out[i + 1].position.w) * weights[2]) +
-						((1 / vertices_out[i + 2].position.w) * weights[0]))
+					1 / (
+					((1 / t.vertices[0].position.z) * weights[1]) +
+					((1 / t.vertices[1].position.z) * weights[2]) +
+					((1 / t.vertices[2].position.z) * weights[0]))
+				};
+
+				//interpolate depth values
+				const float interpolatedDepthW
+				{
+					1 / (
+					((1 / t.vertices[0].position.w) * weights[1]) +
+					((1 / t.vertices[1].position.w) * weights[2]) +
+					((1 / t.vertices[2].position.w) * weights[0]))
+				};
+
+				if (interpolatedDepthZ < m_pDepthBufferPixels[pixelIdx])
+				{
+					m_pDepthBufferPixels[pixelIdx] = interpolatedDepthZ;
+
+					const Vector2 uvInterpolated{
+						(
+						((t.vertices[0].uv / t.vertices[0].position.w) * weights[1]) +
+						((t.vertices[1].uv / t.vertices[1].position.w) * weights[2]) +
+						((t.vertices[2].uv / t.vertices[2].position.w) * weights[0])
+						)
+						* interpolatedDepthW
 					};
 
-
-					if (interpolatedDepth < m_pDepthBufferPixels[pixelIdx])
+					switch (m_CurrentRenderMode)
 					{
-						m_pDepthBufferPixels[pixelIdx] = interpolatedDepth;
-
-						const Vector2 uvInterpolated{
-							(
-							((vertices_out[i].uv / vertices_out[i].position.w) * weights[1]) +
-							((vertices_out[i + 1].uv / vertices_out[i + 1].position.w) * weights[2]) +
-							((vertices_out[i + 2].uv / vertices_out[i + 2].position.w) * weights[0])
-							)
-							* interpolatedDepth
-						};
-
-						switch (m_CurrentRenderMode)
-						{
-						case dae::RenderMode::FinalColor:
-							//color pixel according to uv
-							finalColor = m_pTexture->Sample(uvInterpolated);
-							break;
-						case dae::RenderMode::DepthBuffer:
-
-							finalColor = ColorRGB( interpolatedDepth, interpolatedDepth, interpolatedDepth);
-							break;
-						}
-
-						//Update Color in Buffer
-						finalColor.MaxToOne();
-
-						m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
-							static_cast<uint8_t>(finalColor.r * 255),
-							static_cast<uint8_t>(finalColor.g * 255),
-							static_cast<uint8_t>(finalColor.b * 255));
+					case dae::RenderMode::FinalColor:
+						//color pixel according to uv
+						finalColor = m_pTexture->Sample(uvInterpolated);
+						break;
+					case dae::RenderMode::DepthBuffer:
+						const float greyVal{ Remap(m_pDepthBufferPixels[pixelIdx], .985f, 1.f)};
+						finalColor = { greyVal, greyVal, greyVal };
+						break;
 					}
+
+					//Update Color in Buffer
+					finalColor.MaxToOne();
+
+					m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+						static_cast<uint8_t>(finalColor.r * 255),
+						static_cast<uint8_t>(finalColor.g * 255),
+						static_cast<uint8_t>(finalColor.b * 255));
 				}
 			}
 		}
 	}
 }
 
-//week 1
-void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
-{
-	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
-	vertices_out = vertices_in;
-	//Todo > W1 Projection Stage
-	for (int i = 0; i < vertices_in.size(); ++i)
-	{
-		//transform vertices to viewSpace
-		vertices_out[i].position = m_Camera.viewMatrix.TransformPoint(vertices_in[i].position);
-
-		//apply perspective divide
-		vertices_out[i].position.x = vertices_out[i].position.x / vertices_out[i].position.z;
-		vertices_out[i].position.y = vertices_out[i].position.y / vertices_out[i].position.z;
-
-		//project
-		vertices_out[i].position.x = vertices_out[i].position.x / (aspectRatio * m_Camera.fov);
-		vertices_out[i].position.y = vertices_out[i].position.y / m_Camera.fov;
-
-		//to screen space
-		vertices_out[i].position.x = (vertices_out[i].position.x + 1) / 2 * static_cast<float>(m_Width);
-		vertices_out[i].position.y = (1 - vertices_out[i].position.y) / 2 * static_cast<float>(m_Height);
-	}
-}
-
-//week 2
-void Renderer::VertexTransformationFunction(const std::vector<Vertex>& vertices_in, std::vector<Vertex_Out>& vertices_out) const
-{
-	float aspectRatio{ static_cast<float>(m_Width) / static_cast<float>(m_Height) };
-	vertices_out.reserve(vertices_in.size());
-
-	//Todo > W1 Projection Stage
-	for (int i = 0; i < vertices_in.size(); ++i)
-	{
-		Vector3 transformedPos{ m_Camera.viewMatrix.TransformPoint(vertices_in[i].position) };
-		//transform vertices to viewSpace
-		vertices_out[i].position.x = transformedPos.x;
-		vertices_out[i].position.y = transformedPos.y;
-		vertices_out[i].position.z = transformedPos.z;
-
-
-		//apply perspective divide
-		vertices_out[i].position.x = vertices_out[i].position.x / vertices_out[i].position.z;
-		vertices_out[i].position.y = vertices_out[i].position.y / vertices_out[i].position.z;
-
-		//project
-		vertices_out[i].position.x = vertices_out[i].position.x / (aspectRatio * m_Camera.fov);
-		vertices_out[i].position.y = vertices_out[i].position.y / m_Camera.fov;
-
-		//to screen space
-		vertices_out[i].position.x = (vertices_out[i].position.x + 1) / 2 * static_cast<float>(m_Width);
-		vertices_out[i].position.y = (1 - vertices_out[i].position.y) / 2 * static_cast<float>(m_Height);
-	}
-}
-
-//week 3
-/* 
-void Renderer::VertexTransformationFunction(Mesh& mesh)
-{
-	// Parse the mesh and store the vertices in world space
-	std::vector<Vertex> vertices_worldSpace{};
-	ParseMesh(mesh, vertices_worldSpace);
-
-	mesh.vertices_out.resize(vertices_worldSpace.size());
-
-	size_t vertOutIdx{ 0 };
-
-	// Transform the vertices from world space to clip space
-	for (int i = 0; i < vertices_worldSpace.size(); i += 3)
-	{
-		Vector4 vertexPos[3]{};
-		Vector4 clipSpacePos[3]{};
-		
-		//frustum culling
-		//if any vertex is outside of frustum, skip triangle
-		for (size_t j = 0; j < 3; j++)
-		{
-			vertexPos[j] = {vertices_worldSpace[i + j].position.x, vertices_worldSpace[i + j].position.y, vertices_worldSpace[i + j].position.z, 1};
-
-			//world space -> clip space
-			clipSpacePos[j] = {m_WorldViewProjectionMatrix.TransformPoint(vertexPos[j])};
-
-			//apply perspective divide => clip space -> NDC space
-			clipSpacePos[j].x /= clipSpacePos[j].w;
-			clipSpacePos[j].y /= clipSpacePos[j].w;
-			clipSpacePos[j].z /= clipSpacePos[j].w;
-
-			if (!IsVertexInFrustum(clipSpacePos[j]))
-				break;
-		}
-		
-		for (size_t j = 0; j < 3; j++)
-		{
-			mesh.vertices_out[vertOutIdx].position = clipSpacePos[j];
-
-			//NDC space -> screen space
-			mesh.vertices_out[vertOutIdx].position.x = (mesh.vertices_out[vertOutIdx].position.x + 1) / 2 * static_cast<float>(m_Width);
-			mesh.vertices_out[vertOutIdx].position.y = (1 - mesh.vertices_out[vertOutIdx].position.y) / 2 * static_cast<float>(m_Height);
-			mesh.vertices_out[vertOutIdx].position.w = mesh.vertices_out[vertOutIdx].position.w;
-
-			// Copy the UV coordinates from the input vertex
-			mesh.vertices_out[vertOutIdx].uv = vertices_worldSpace[vertOutIdx].uv;
-
-			++vertOutIdx;
-		}
-	}
-}*/
-
+//Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
 void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
 	// Parse the mesh and store the vertices in world space
@@ -1027,6 +1023,8 @@ void Renderer::VertexTransformationFunction(Mesh& mesh)
 	}
 }
 
+#pragma endregion
+
 bool dae::Renderer::IsVertexInFrustum(const Vertex_Out& v)
 {
 	if (v.position.x < -1 || v.position.x > 1) return false;
@@ -1036,29 +1034,39 @@ bool dae::Renderer::IsVertexInFrustum(const Vertex_Out& v)
 	return true;
 }
 
-bool dae::Renderer::IsVertexInFrustum(const Vector4 v)
+bool dae::Renderer::IsTriangleInFrustum(const Triangle& t)
 {
-	if (v.x < -1 || v.x > 1) return false;
-	if (v.y < -1 || v.y > 1) return false;
-	if (v.z < 0 || v.z > 1)  return false;
+	if (!IsVertexInFrustum(t.vertices[0])) return false;
+	if (!IsVertexInFrustum(t.vertices[1])) return false;
+	if (!IsVertexInFrustum(t.vertices[2])) return false;
 
 	return true;
 }
 
-bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], float(&weights)[3]) const
+//checks if point is in 2D triangle and stores barycentric weights in given array
+bool dae::Renderer::IsPointInTri(Vector2 P, const Triangle& t, float(&weights)[3]) const
 {
-	const Vector2 edges[3]{
-		vertexPositions[1] - vertexPositions[0],
-		vertexPositions[2] - vertexPositions[1],
-		vertexPositions[0] - vertexPositions[2] };
+	const Vector2 positions[3]
+	{
+		{t.vertices[0].position.x, t.vertices[0].position.y},
+		{t.vertices[1].position.x, t.vertices[1].position.y},
+		{t.vertices[2].position.x, t.vertices[2].position.y}
+	};
+
+	const Vector2 edges[3]
+	{
+		positions[1] - positions[0],
+		positions[2] - positions[1],
+		positions[0] - positions[2]
+	};
 
 	Vector3 pointToSide{};
 	const float totalArea{ Vector2::Cross(edges[0], edges[1]) };
 
 	for (int i = 0; i < 3; ++i)
 	{
-		pointToSide.x = P.x - vertexPositions[i].x;
-		pointToSide.y = P.y - vertexPositions[i].y;
+		pointToSide.x = P.x - positions[i].x;
+		pointToSide.y = P.y - positions[i].y;
 
 		const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
 		weights[i] = cross / totalArea;
@@ -1068,17 +1076,17 @@ bool dae::Renderer::IsPointInTri(Vector2 P, const Vector2 vertexPositions[], flo
 	return true;
 }
 
-BoundingBox dae::Renderer::GenerateBoundingBox(const Vector2 vertices[]) const
-{ 
+BoundingBox dae::Renderer::GenerateBoundingBox(const Triangle t) const
+{
 	BoundingBox boundingBox{};
 
 	for (size_t i = 0; i < 3; i++)
 	{
-		boundingBox.minX = std::min(int(vertices[i].x), boundingBox.minX);
-		boundingBox.minY = std::min(int(vertices[i].y), boundingBox.minY);
+		boundingBox.minX = std::min(static_cast<int>(t.vertices[i].position.x), boundingBox.minX);
+		boundingBox.minY = std::min(static_cast<int>(t.vertices[i].position.y), boundingBox.minY);
 
-		boundingBox.maxX = std::max(int(vertices[i].x), boundingBox.maxX);
-		boundingBox.maxY = std::max(int(vertices[i].y), boundingBox.maxY);
+		boundingBox.maxX = std::max(static_cast<int>(t.vertices[i].position.x), boundingBox.maxX);
+		boundingBox.maxY = std::max(static_cast<int>(t.vertices[i].position.y), boundingBox.maxY);
 	}
 
 	if (boundingBox.minX < 0) boundingBox.minX = 0;
@@ -1089,22 +1097,22 @@ BoundingBox dae::Renderer::GenerateBoundingBox(const Vector2 vertices[]) const
 	return boundingBox;
 }
 
-BoundingBox dae::Renderer::GenerateBoundingBox(const Triangle t) const
+float dae::Renderer::Remap(float value, float rangeMin, float rangeMax)
 {
-	BoundingBox boundingBox{};
-
-	for (size_t i = 0; i < 3; i++)
-	{
-		boundingBox.minX = std::min(int(t.vertices[i].position.x), boundingBox.minX);
-		boundingBox.minY = std::min(int(t.vertices[i].position.y), boundingBox.minY);
-
-		boundingBox.maxX = std::max(int(t.vertices[i].position.x), boundingBox.maxX);
-		boundingBox.maxY = std::max(int(t.vertices[i].position.y), boundingBox.maxY);
-	}
-
-	return BoundingBox();
+	return (rangeMax - value) / (rangeMax - rangeMin);
 }
 
+void dae::Renderer::UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, const Matrix& viewMatrix, const Matrix& projectionMatrix)
+{
+	//if any transformation matrix changes, update worldViewProjectionMatrix
+	if (m_WorldMatrix != worldMatrix || m_ViewMatrix != viewMatrix || m_ProjectionMatrix != projectionMatrix)
+	{
+		m_WorldMatrix = worldMatrix;
+		m_ViewMatrix = viewMatrix;
+		m_ProjectionMatrix = projectionMatrix;
+		m_WorldViewProjectionMatrix = m_WorldMatrix * m_ViewMatrix * m_ProjectionMatrix;
+	}
+}
 
 void dae::Renderer::ParseMesh(Mesh mesh, std::vector<Vertex>& vertices_out)
 {
