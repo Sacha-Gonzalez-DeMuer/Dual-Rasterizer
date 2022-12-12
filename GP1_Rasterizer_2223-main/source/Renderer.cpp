@@ -44,6 +44,9 @@ Renderer::~Renderer()
 
 	delete m_pTexture;
 	m_pTexture = nullptr;
+
+	delete m_pNormalMap;
+	m_pNormalMap = nullptr;
 }
 
 void dae::Renderer::InitializeMesh()
@@ -109,7 +112,7 @@ void dae::Renderer::InitializeMesh()
 void Renderer::Update(Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
-	const float yawAngle{ pTimer->GetTotal() * .1f };
+	const float yawAngle{ pTimer->GetTotal() * .2f };
 	m_Mesh.worldMatrix = Matrix::CreateRotationY(yawAngle);
 	UpdateWorldViewProjectionMatrix(m_Mesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
 }
@@ -269,16 +272,17 @@ ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
 	{
 		(tangentSpaceAxis.TransformVector({ sampledNormal.r, sampledNormal.g, sampledNormal.b })).Normalized()
 	};
-	
 
 	//observedArea
-	float cosAngle{ Vector3::Dot(tangentSpaceSampledNormal, lightDirection) };
-	if (cosAngle < 0) cosAngle = 0;
+	float observedArea{ Vector3::Dot(tangentSpaceSampledNormal, lightDirection) };
+	if (observedArea < 0) observedArea = 0;
 
 	//lambert diffuse
-	ColorRGB lambert{ BRDF::Lambert(.5f,  m_pTexture->Sample(v.uv)) };
+	const ColorRGB lambert{ BRDF::Lambert(.5f,  m_pTexture->Sample(v.uv)) };
 
-	return {ColorRGB(1,1,1) * cosAngle};
+	const ColorRGB BRDF{ lambert };
+
+	return {ColorRGB(1,1,1) * observedArea};
 }
 
 //Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
