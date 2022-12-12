@@ -54,14 +54,25 @@ namespace dae
 		Matrix worldMatrix{};
 	};
 
+
+
 	struct Triangle
 	{
 		Vertex_Out vertices[3]{};
+		Vector2 edges[3]{};
 		float recipTotalArea{};
+		float weights[3]{};
+
 
 		Vector2 GetVector2Pos(int idx) const 
 		{ 
 			return { vertices[idx].position.x, vertices[idx].position.y };
 		};
+	};
+
+	struct TriangleMesh
+	{
+		std::vector<Triangle> triangles{};
+		Matrix worldMatrix{};
 	};
 }

@@ -47,12 +47,14 @@ namespace dae
 		float* m_pDepthBufferPixels{};
 		
 		Mesh m_Mesh{};
+		TriangleMesh m_TriangleMesh{};
 		Camera m_Camera{};
 		Matrix m_WorldMatrix{};
 		Matrix m_ViewMatrix{};
 		Matrix m_ProjectionMatrix{};
 
 		Matrix m_WorldViewProjectionMatrix{ };
+	
 	
 		RenderMode m_CurrentRenderMode{ RenderMode::DepthBuffer };
 
@@ -68,7 +70,7 @@ namespace dae
 		
 		bool IsVertexInFrustum(const Vertex_Out& v);
 		bool IsTriangleInFrustum(const Triangle& t);
-		bool IsPointInTri(Vector2 P, const Triangle& t, float(&weights)[3]) const;
+		bool IsPointInTri(const Vector2& P, const Triangle& t, float(&weights)[3]) const;
 
 		BoundingBox GenerateBoundingBox(const Triangle t) const;
 

@@ -155,7 +155,10 @@ void dae::Renderer::RenderLoop()
 		}
 
 		t.recipTotalArea = 1 / Vector2::Cross(t.GetVector2Pos(0) - t.GetVector2Pos(1), t.GetVector2Pos(0) - t.GetVector2Pos(2));
-		
+		t.edges[0] = t.GetVector2Pos(1) - t.GetVector2Pos(0);
+		t.edges[1] = t.GetVector2Pos(2) - t.GetVector2Pos(1);
+		t.edges[2] = t.GetVector2Pos(0) - t.GetVector2Pos(2);
+
 		const BoundingBox boundingBox{ GenerateBoundingBox(t) };
 		
 		PixelLoop(t, boundingBox);
@@ -172,6 +175,8 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 			const int pixelIdx{ px + (py * m_Width) };
 			const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
 			ColorRGB finalColor{ 0, 0, 0 };
+
+			int pointsInTriTested{ 0 };
 
 			float weights[3]{};
 			if (IsPointInTri(pixelCoord, t, weights))
@@ -226,7 +231,7 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 						static_cast<uint8_t>(finalColor.b * 255));
 				};
 				
-
+				;
 				
 			}
 		}
@@ -279,19 +284,12 @@ bool dae::Renderer::IsTriangleInFrustum(const Triangle& t)
 }
 
 //checks if point is in 2D triangle and stores barycentric weights in given array
-bool dae::Renderer::IsPointInTri(Vector2 P, const Triangle& t, float(&weights)[3]) const
-{
-	const Vector2 edges[3]
-	{
-		t.GetVector2Pos(1) - t.GetVector2Pos(0),
-		t.GetVector2Pos(2) - t.GetVector2Pos(1),
-		t.GetVector2Pos(0) - t.GetVector2Pos(2)
-	};
-	
+bool dae::Renderer::IsPointInTri(const Vector2& P, const Triangle& t, float(&weights)[3]) const
+{	
 	for (int i = 0; i < 3; ++i)
 	{
 		const Vector2 pointToSide{ P - t.GetVector2Pos(i) };
-		const float cross{ edges[i].x * pointToSide.y - edges[i].y * pointToSide.x };
+		const float cross{ t.edges[i].x * pointToSide.y - t.edges[i].y * pointToSide.x };
 		weights[i] = cross * t.recipTotalArea;
 		if (cross < 0) return false;
 	}
