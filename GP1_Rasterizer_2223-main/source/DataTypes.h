@@ -1,6 +1,7 @@
 #pragma once
 #include "Math.h"
 #include "vector"
+#include <array>
 
 namespace dae
 {
@@ -61,13 +62,36 @@ namespace dae
 		Vertex_Out vertices[3]{};
 		Vector2 edges[3]{};
 		float recipTotalArea{};
-		float weights[3]{};
+		//float weights[3]{};
 
 
 		Vector2 GetVector2Pos(int idx) const 
 		{ 
 			return { vertices[idx].position.x, vertices[idx].position.y };
 		};
+
+		float GetInterpolatedZ(const float(&weights)[3]) const
+		{
+			return
+			{
+				((vertices[0].position.z * weights[1]) +
+					 (vertices[1].position.z * weights[2]) +
+					 (vertices[2].position.z * weights[0]))
+					/ 1
+			};
+		}
+
+		float GetInterpolatedW(const float (&weights)[3]) const
+		{
+			return
+			{
+				((vertices[0].position.w * weights[1]) +
+				 (vertices[1].position.w * weights[2]) +
+				 (vertices[2].position.w * weights[0]))
+				/ 1
+			};
+		};
+
 	};
 
 	struct TriangleMesh

@@ -37,6 +37,7 @@ namespace dae
 	private:
 		void RenderLoop();
 		void PixelLoop(const Triangle& t, const BoundingBox& bb);
+		ColorRGB PixelShading(const Vertex_Out& v);
 
 		SDL_Window* m_pWindow{};
 
@@ -56,9 +57,10 @@ namespace dae
 		Matrix m_WorldViewProjectionMatrix{ };
 	
 	
-		RenderMode m_CurrentRenderMode{ RenderMode::DepthBuffer };
+		RenderMode m_CurrentRenderMode{ RenderMode::FinalColor };
 
 		Texture* m_pTexture{ nullptr };
+		Texture* m_pNormalMap{ nullptr };
 
 		int m_Width{};
 		int m_Height{};

@@ -10,6 +10,7 @@
 #include "Matrix.h"
 #include "Texture.h"
 #include "Utils.h"
+#include "BRDFs.h"
 
 using namespace dae;
 
@@ -28,10 +29,11 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 
 	//Initialize Camera
-	m_Camera.Initialize(60.f, { .0f, 5.f, -30.f },
+	m_Camera.Initialize(60.f, { .0f, .0f, -30.f },
 		(static_cast<float>(m_Width) / static_cast<float>(m_Height)));
 
-	m_pTexture = Texture::LoadFromFile("Resources/uv_grid_2.png");
+	m_pTexture = Texture::LoadFromFile("Resources/vehicle_diffuse.png");
+	m_pNormalMap = Texture::LoadFromFile("Resources/vehicle_normal.png");
 
 	InitializeMesh();
 }
@@ -97,16 +99,18 @@ void dae::Renderer::InitializeMesh()
 		PrimitiveTopology::TriangleStrip
 	};
 
-	m_Mesh = meshList;
-	ParseMesh(m_Mesh); 
+	//m_Mesh = meshList;
+	//ParseMesh(m_Mesh); 
 
-	Utils::ParseOBJ("Resources/tuktuk.obj", m_Mesh.vertices, m_Mesh.indices, false);
+	Utils::ParseOBJ("Resources/vehicle.obj", m_Mesh.vertices, m_Mesh.indices, false);
 }
 
 
 void Renderer::Update(Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
+	const float yawAngle{ pTimer->GetTotal() * .1f };
+	m_Mesh.worldMatrix = Matrix::CreateRotationY(yawAngle);
 	UpdateWorldViewProjectionMatrix(m_Mesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
 }
 
@@ -145,11 +149,12 @@ void dae::Renderer::RenderLoop()
 	{
 		//Construct Triangle
 		Triangle t{ { m_Mesh.vertices_out[i], m_Mesh.vertices_out[i + 1], m_Mesh.vertices_out[i + 2] } };
-		if (!IsTriangleInFrustum(t)) continue;
+		
+		if (!IsTriangleInFrustum(t)) continue; //frustum culling
 
 		for (size_t j = 0; j < 3; j++)
 		{
-			//NDC space -> screen space
+			//NDC space -> screen/raster space
 			t.vertices[j].position.x = (t.vertices[j].position.x + 1) / 2 * static_cast<float>(m_Width);
 			t.vertices[j].position.y = (1 - t.vertices[j].position.y) / 2 * static_cast<float>(m_Height);
 		}
@@ -160,7 +165,6 @@ void dae::Renderer::RenderLoop()
 		t.edges[2] = t.GetVector2Pos(0) - t.GetVector2Pos(2);
 
 		const BoundingBox boundingBox{ GenerateBoundingBox(t) };
-		
 		PixelLoop(t, boundingBox);
 	}
 }
@@ -181,26 +185,13 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 			float weights[3]{};
 			if (IsPointInTri(pixelCoord, t, weights))
 			{
-				const float interpolatedDepthZ
-				{
-					((t.vertices[0].position.z * weights[1]) +
-					 (t.vertices[1].position.z * weights[2]) +
-					 (t.vertices[2].position.z * weights[0])) 
-					/ 1
-				};
-
+				const float interpolatedDepthZ{ t.GetInterpolatedZ(weights) };
 
 				if (interpolatedDepthZ > 0.f && interpolatedDepthZ < 1.f && interpolatedDepthZ < m_pDepthBufferPixels[pixelIdx]) 
 				{
 					m_pDepthBufferPixels[pixelIdx] = interpolatedDepthZ;
 
-					const float interpolatedDepthW
-					{
-						((t.vertices[0].position.w * weights[1]) +
-						 (t.vertices[1].position.w * weights[2]) +
-						 (t.vertices[2].position.w * weights[0])) 
-						/ 1
-					};
+					const float interpolatedDepthW{ t.GetInterpolatedW(weights) };
 
 					const Vector2 uvInterpolated{
 						(
@@ -211,10 +202,34 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 						* interpolatedDepthW
 					};
 
+					const Vector3 normalInterpolated{
+						(
+						((t.vertices[0].normal / t.vertices[0].position.w) * weights[1]) +
+						((t.vertices[1].normal / t.vertices[1].position.w) * weights[2]) +
+						((t.vertices[2].normal / t.vertices[2].position.w) * weights[0])
+						)
+						* interpolatedDepthW
+					};
+
+					const Vector3 tangentInterpolated{
+						(
+						((t.vertices[0].tangent / t.vertices[0].position.w) * weights[1]) +
+						((t.vertices[1].tangent / t.vertices[1].position.w) * weights[2]) +
+						((t.vertices[2].tangent / t.vertices[2].position.w) * weights[0])
+						)
+						* interpolatedDepthW
+					};
+
+					Vertex_Out interpolatedVertex{};
+					interpolatedVertex.position.z = interpolatedDepthZ;
+					interpolatedVertex.normal = normalInterpolated;
+					interpolatedVertex.uv = uvInterpolated;
+					interpolatedVertex.tangent = tangentInterpolated;
+
 					switch (m_CurrentRenderMode)
 					{
 					case dae::RenderMode::FinalColor:
-						finalColor = m_pTexture->Sample(uvInterpolated);
+						finalColor = PixelShading(interpolatedVertex);
 						break;
 					case dae::RenderMode::DepthBuffer:
 						const float greyVal{ Remap(m_pDepthBufferPixels[pixelIdx], .985f, 1.f)};
@@ -238,6 +253,34 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 	}
 }
 
+ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
+{
+	const Vector3 lightDirection { .577f, -.577f, .577f };
+	constexpr float lightIntensity{ 7.f };
+	const ColorRGB irradiance{ ColorRGB(1,1,1) * lightIntensity };
+	constexpr float specularShininess{ 25.f };
+	
+
+	//normal map
+	const Vector3 binormal{ Vector3::Cross(v.normal, v.tangent) };
+	const Matrix tangentSpaceAxis{ v.tangent, binormal, v.normal, Vector3::Zero };
+	const ColorRGB sampledNormal{ 2.f * (m_pNormalMap->Sample(v.uv) / 255.f) - ColorRGB(1,1,1) }; //normal sampled from texture and remapped to [-1,1] range
+	const Vector3 tangentSpaceSampledNormal //sampled normalized normal transformed to tangent space
+	{
+		(tangentSpaceAxis.TransformVector({ sampledNormal.r, sampledNormal.g, sampledNormal.b })).Normalized()
+	};
+	
+
+	//observedArea
+	float cosAngle{ Vector3::Dot(tangentSpaceSampledNormal, lightDirection) };
+	if (cosAngle < 0) cosAngle = 0;
+
+	//lambert diffuse
+	ColorRGB lambert{ BRDF::Lambert(.5f,  m_pTexture->Sample(v.uv)) };
+
+	return {ColorRGB(1,1,1) * cosAngle};
+}
+
 //Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
 void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
@@ -248,7 +291,9 @@ void Renderer::VertexTransformationFunction(Mesh& mesh)
 	{
 		mesh.vertices_out[i].position = { mesh.vertices[i].position.x, mesh.vertices[i].position.y, mesh.vertices[i].position.z, 1 };
 
-		//world space -> clip space
+		mesh.vertices_out[i].normal = mesh.worldMatrix.TransformVector(mesh.vertices[i].normal);
+
+		//to clip space
 		mesh.vertices_out[i].position = m_WorldViewProjectionMatrix.TransformPoint(mesh.vertices_out[i].position);
 
 		const float recipW{ 1 / mesh.vertices_out[i].position.w };
@@ -300,6 +345,8 @@ bool dae::Renderer::IsPointInTri(const Vector2& P, const Triangle& t, float(&wei
 BoundingBox dae::Renderer::GenerateBoundingBox(const Triangle t) const
 {
 	BoundingBox boundingBox{};
+	boundingBox.minX = INT_MAX;
+	boundingBox.minY = INT_MAX;
 
 	for (size_t i = 0; i < 3; i++)
 	{
