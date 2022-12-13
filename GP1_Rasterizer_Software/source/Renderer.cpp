@@ -106,14 +106,18 @@ void dae::Renderer::InitializeMesh()
 	//ParseMesh(m_Mesh); 
 
 	Utils::ParseOBJ("Resources/vehicle.obj", m_Mesh.vertices, m_Mesh.indices, false);
+	m_Mesh.vertices_out.resize(m_Mesh.vertices.size());
 }
 
 
 void Renderer::Update(Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
-	const float yawAngle{ pTimer->GetTotal() * .2f };
+
+	//Rotate mesh
+	const float yawAngle{ pTimer->GetTotal() * .5f };
 	m_Mesh.worldMatrix = Matrix::CreateRotationY(yawAngle);
+
 	UpdateWorldViewProjectionMatrix(m_Mesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
 }
 
@@ -196,38 +200,41 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 
 					const float interpolatedDepthW{ t.GetInterpolatedW(weights) };
 
+					const float recipW0{ 1 / t.vertices[0].position.w };
+					const float recipW1{ 1 / t.vertices[1].position.w };
+					const float recipW2{ 1 / t.vertices[2].position.w };
+
 					const Vector2 uvInterpolated{
 						(
-						((t.vertices[0].uv / t.vertices[0].position.w) * weights[1]) +
-						((t.vertices[1].uv / t.vertices[1].position.w) * weights[2]) +
-						((t.vertices[2].uv / t.vertices[2].position.w) * weights[0])
+						((t.vertices[0].uv * recipW0) * weights[1]) +
+						((t.vertices[1].uv * recipW1) * weights[2]) +
+						((t.vertices[2].uv * recipW2) * weights[0])
 						)
 						* interpolatedDepthW
 					};
 
 					const Vector3 normalInterpolated{
 						(
-						((t.vertices[0].normal / t.vertices[0].position.w) * weights[1]) +
-						((t.vertices[1].normal / t.vertices[1].position.w) * weights[2]) +
-						((t.vertices[2].normal / t.vertices[2].position.w) * weights[0])
+						((t.vertices[0].normal * recipW0) * weights[1]) +
+						((t.vertices[1].normal * recipW1) * weights[2]) +
+						((t.vertices[2].normal * recipW2) * weights[0])
 						)
 						* interpolatedDepthW
 					};
 
 					const Vector3 tangentInterpolated{
 						(
-						((t.vertices[0].tangent / t.vertices[0].position.w) * weights[1]) +
-						((t.vertices[1].tangent / t.vertices[1].position.w) * weights[2]) +
-						((t.vertices[2].tangent / t.vertices[2].position.w) * weights[0])
+						((t.vertices[0].tangent * recipW0) * weights[1]) +
+						((t.vertices[1].tangent * recipW1) * weights[2]) +
+						((t.vertices[2].tangent * recipW2) * weights[0])
 						)
 						* interpolatedDepthW
 					};
 
 					Vertex_Out interpolatedVertex{};
-					interpolatedVertex.position.z = interpolatedDepthZ;
-					interpolatedVertex.normal = normalInterpolated;
+					interpolatedVertex.normal = normalInterpolated.Normalized();
 					interpolatedVertex.uv = uvInterpolated;
-					interpolatedVertex.tangent = tangentInterpolated;
+					interpolatedVertex.tangent = tangentInterpolated.Normalized();
 
 					switch (m_CurrentRenderMode)
 					{
@@ -248,9 +255,6 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 						static_cast<uint8_t>(finalColor.g * 255),
 						static_cast<uint8_t>(finalColor.b * 255));
 				};
-				
-				;
-				
 			}
 		}
 	}
@@ -262,24 +266,24 @@ ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
 	constexpr float lightIntensity{ 7.f };
 	const ColorRGB irradiance{ ColorRGB(1,1,1) * lightIntensity };
 	constexpr float specularShininess{ 25.f };
-	
 
 	//normal map
 	const Vector3 binormal{ Vector3::Cross(v.normal, v.tangent) };
 	const Matrix tangentSpaceAxis{ v.tangent, binormal, v.normal, Vector3::Zero };
-	const ColorRGB sampledNormal{ 2.f * (m_pNormalMap->Sample(v.uv) / 255.f) - ColorRGB(1,1,1) }; //normal sampled from texture and remapped to [-1,1] range
+	ColorRGB sampledNormal{ m_pNormalMap->Sample(v.uv) }; //normal sampled from texture and remapped to [-1,1] range
+	sampledNormal /= 255.f;
+
 	const Vector3 tangentSpaceSampledNormal //sampled normalized normal transformed to tangent space
 	{
-		(tangentSpaceAxis.TransformVector({ sampledNormal.r, sampledNormal.g, sampledNormal.b })).Normalized()
+		(tangentSpaceAxis.TransformVector({ sampledNormal.r, sampledNormal.g, sampledNormal.b }))
 	};
 
 	//observedArea
-	float observedArea{ Vector3::Dot(tangentSpaceSampledNormal, lightDirection) };
+	float observedArea{ Vector3::Dot(tangentSpaceSampledNormal.Normalized(), -lightDirection)};
 	if (observedArea < 0) observedArea = 0;
 
 	//lambert diffuse
 	const ColorRGB lambert{ BRDF::Lambert(.5f,  m_pTexture->Sample(v.uv)) };
-
 	const ColorRGB BRDF{ lambert };
 
 	return {ColorRGB(1,1,1) * observedArea};
@@ -288,16 +292,19 @@ ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
 //Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
 void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
-	mesh.vertices_out.resize(mesh.vertices.size());
+	
 
 	// Transform the vertices from world space to clip space
 	for (int i = 0; i < mesh.vertices.size(); ++i)
 	{
 		mesh.vertices_out[i].position = { mesh.vertices[i].position.x, mesh.vertices[i].position.y, mesh.vertices[i].position.z, 1 };
 
-		mesh.vertices_out[i].normal = mesh.worldMatrix.TransformVector(mesh.vertices[i].normal);
+		//transform normals & tangents from model space to world space
+		Matrix worldMatrix3x3{ mesh.worldMatrix.GetAxisX(), mesh.worldMatrix.GetAxisY(), mesh.worldMatrix.GetAxisZ(), Vector3::Zero };
+		mesh.vertices_out[i].normal  = worldMatrix3x3.TransformVector(mesh.vertices[i].normal);
+		mesh.vertices_out[i].tangent = worldMatrix3x3.TransformVector(mesh.vertices[i].tangent);
 
-		//to clip space
+		//position to clip space
 		mesh.vertices_out[i].position = m_WorldViewProjectionMatrix.TransformPoint(mesh.vertices_out[i].position);
 
 		const float recipW{ 1 / mesh.vertices_out[i].position.w };

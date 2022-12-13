@@ -62,7 +62,6 @@ namespace dae
 		Vertex_Out vertices[3]{};
 		Vector2 edges[3]{};
 		float recipTotalArea{};
-		//float weights[3]{};
 
 
 		Vector2 GetVector2Pos(int idx) const 
@@ -75,9 +74,9 @@ namespace dae
 			return
 			{
 				((vertices[0].position.z * weights[1]) +
-					 (vertices[1].position.z * weights[2]) +
-					 (vertices[2].position.z * weights[0]))
-					/ 1
+				(vertices[1].position.z * weights[2]) +
+				(vertices[2].position.z * weights[0]))
+				/ 1
 			};
 		}
 
