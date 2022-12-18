@@ -12,6 +12,7 @@ namespace dae
 
 		Vector3() = default;
 		Vector3(float _x, float _y, float _z);
+
 		Vector3(const Vector3& from, const Vector3& to);
 		Vector3(const Vector4& v);
 

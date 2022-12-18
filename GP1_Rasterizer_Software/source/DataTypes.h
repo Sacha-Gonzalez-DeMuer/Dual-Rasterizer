@@ -73,21 +73,23 @@ namespace dae
 		{
 			return
 			{
-				((vertices[0].position.z * weights[1]) +
-				(vertices[1].position.z * weights[2]) +
-				(vertices[2].position.z * weights[0]))
-				/ 1
+				1 / (
+					((1 / vertices[0].position.z) * weights[1]) +
+					((1 / vertices[1].position.z) * weights[2]) +
+					((1 / vertices[2].position.z) * weights[0]))
 			};
+
+
 		}
 
 		float GetInterpolatedW(const float (&weights)[3]) const
 		{
 			return
 			{
-				((vertices[0].position.w * weights[1]) +
-				 (vertices[1].position.w * weights[2]) +
-				 (vertices[2].position.w * weights[0]))
-				/ 1
+				1 / (
+				((1 / vertices[0].position.w) * weights[1]) +
+				((1 / vertices[1].position.w) * weights[2]) +
+				((1 / vertices[2].position.w) * weights[0]))
 			};
 		};
 

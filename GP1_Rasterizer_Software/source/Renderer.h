@@ -61,6 +61,8 @@ namespace dae
 
 		Texture* m_pTexture{ nullptr };
 		Texture* m_pNormalMap{ nullptr };
+		Texture* m_pSpecularColor{ nullptr };
+		Texture* m_pPhongExponent{ nullptr };
 
 		int m_Width{};
 		int m_Height{};

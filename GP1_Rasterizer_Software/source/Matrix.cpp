@@ -165,7 +165,7 @@ namespace dae {
 
 
 		const float A{ zf / (zf - zn) };
-		const float B{ -(zf * zn) / (zf - zn) };
+		const float B{ (-zf * zn) / (zf - zn) };
 
 		return {
 			{xScale, 0, 0, 0},

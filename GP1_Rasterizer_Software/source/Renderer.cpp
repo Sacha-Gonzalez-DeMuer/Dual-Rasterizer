@@ -29,11 +29,13 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 
 	//Initialize Camera
-	m_Camera.Initialize(60.f, { .0f, .0f, -30.f },
+	m_Camera.Initialize(60.f, { .0f, .0f, -40.f },
 		(static_cast<float>(m_Width) / static_cast<float>(m_Height)));
 
 	m_pTexture = Texture::LoadFromFile("Resources/vehicle_diffuse.png");
 	m_pNormalMap = Texture::LoadFromFile("Resources/vehicle_normal.png");
+	m_pSpecularColor = Texture::LoadFromFile("Resources/vehicle_specular.png");
+	m_pPhongExponent = Texture::LoadFromFile("Resources/vehicle_gloss.png");
 
 	InitializeMesh();
 }
@@ -115,7 +117,7 @@ void Renderer::Update(Timer* pTimer)
 	m_Camera.Update(pTimer);
 
 	//Rotate mesh
-	const float yawAngle{ pTimer->GetTotal() * .5f };
+	const float yawAngle{ pTimer->GetTotal() };
 	m_Mesh.worldMatrix = Matrix::CreateRotationY(yawAngle);
 
 	UpdateWorldViewProjectionMatrix(m_Mesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
@@ -236,6 +238,22 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 					interpolatedVertex.uv = uvInterpolated;
 					interpolatedVertex.tangent = tangentInterpolated.Normalized();
 
+
+					const float interX{ 
+						1 / (
+							((1 / t.vertices[0].position.x) * weights[1]) +
+							((1 / t.vertices[1].position.x) * weights[2]) +
+							((1 / t.vertices[2].position.x) * weights[0]))
+					};
+
+					const float interY{
+						1 / (
+						((1 / t.vertices[0].position.y) * weights[1]) +
+						((1 / t.vertices[1].position.y) * weights[2]) +
+						((1 / t.vertices[2].position.y) * weights[0]))
+					};
+					interpolatedVertex.position = { interX, interY, interpolatedDepthZ, interpolatedDepthW };
+
 					switch (m_CurrentRenderMode)
 					{
 					case dae::RenderMode::FinalColor:
@@ -260,40 +278,48 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 	}
 }
 
+//v's values should be interpolated
 ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
 {
 	const Vector3 lightDirection { .577f, -.577f, .577f };
 	constexpr float lightIntensity{ 7.f };
-	const ColorRGB irradiance{ ColorRGB(1,1,1) * lightIntensity };
+
 	constexpr float specularShininess{ 25.f };
+	const float diffuseReflectance{ 1.f }; 
+	const float specular{ m_pSpecularColor->Sample(v.uv).r }; 
+	const float phongExponent{ m_pPhongExponent->Sample(v.uv).g * specularShininess };
+	const Vector3 viewDirection{ Vector3(Vector3(v.position.x, v.position.y, v.position.z) - m_Camera.origin).Normalized() };
+	const ColorRGB ambient{ .025f, .025f, .025f };
 
-	//normal map
-	const Vector3 binormal{ Vector3::Cross(v.normal, v.tangent) };
-	const Matrix tangentSpaceAxis{ v.tangent, binormal, v.normal, Vector3::Zero };
-	ColorRGB sampledNormal{ m_pNormalMap->Sample(v.uv) }; //normal sampled from texture and remapped to [-1,1] range
-	sampledNormal /= 255.f;
+	//create tangent space transformation matrix
+	const Vector3 binormal{ Vector3::Cross(v.normal, v.tangent ).Normalized() };
+	const Matrix tangentSpace{ -v.tangent, binormal, v.normal, Vector3::Zero };
 
-	const Vector3 tangentSpaceSampledNormal //sampled normalized normal transformed to tangent space
-	{
-		(tangentSpaceAxis.TransformVector({ sampledNormal.r, sampledNormal.g, sampledNormal.b }))
-	};
+	//sample normal
+	const ColorRGB sampledNormal{ (2.f * m_pNormalMap->Sample(v.uv) - ColorRGB(1,1,1)) }; //to [-1, 1]
+	const Vector3 vSampledNormal{ Vector3(sampledNormal.r, sampledNormal.g, sampledNormal.b) };
+	const Vector3 tangentSpaceSampledNormal { tangentSpace.TransformVector(vSampledNormal).Normalized() };
 
 	//observedArea
-	float observedArea{ Vector3::Dot(tangentSpaceSampledNormal.Normalized(), -lightDirection)};
-	if (observedArea < 0) observedArea = 0;
+	const float observedArea{ std::max(0.f, Vector3::Dot(tangentSpaceSampledNormal, -lightDirection))};
 
 	//lambert diffuse
-	const ColorRGB lambert{ BRDF::Lambert(.5f,  m_pTexture->Sample(v.uv)) };
-	const ColorRGB BRDF{ lambert };
+	const ColorRGB lambert{ BRDF::Lambert(diffuseReflectance, m_pTexture->Sample(v.uv)) };
+	const ColorRGB phong{ BRDF::Phong(specular, phongExponent, -lightDirection, -viewDirection, tangentSpaceSampledNormal.Normalized())  };
+	
+	
+	const ColorRGB BRDF{ lambert * lightIntensity + phong };
 
-	return {ColorRGB(1,1,1) * observedArea};
+	ColorRGB combined{ BRDF * observedArea + ambient };
+	combined.MaxToOne();
+
+	return combined;
+	//return ColorRGB(1, 1, 1) * observedArea;
 }
 
 //Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
 void Renderer::VertexTransformationFunction(Mesh& mesh)
 {
-	
-
 	// Transform the vertices from world space to clip space
 	for (int i = 0; i < mesh.vertices.size(); ++i)
 	{

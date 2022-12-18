@@ -42,7 +42,7 @@ namespace dae
 
 		SDL_GetRGB(pixel, m_pSurface->format, &r, &g, &b);
 
-		const float toRatio{ 1.f / 255.f };
+		constexpr float toRatio{ 1.f / 255.f };
 		return { r * toRatio, g * toRatio, b * toRatio };
 	}
 }
