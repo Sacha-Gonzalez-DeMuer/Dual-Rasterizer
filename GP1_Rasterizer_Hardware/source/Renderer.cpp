@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderer.h"
+#include "Mesh.h"
 
 namespace dae {
 
@@ -20,10 +21,20 @@ namespace dae {
 		{
 			std::cout << "DirectX initialization failed!\n";
 		}
+
+
+		m_pMesh = new Mesh(m_pDevice);
 	}
 
 	Renderer::~Renderer()
 	{
+		m_pRenderTargetView->Release();
+		m_pRenderTargetBuffer->Release();
+		m_pDepthStencilView->Release();
+		m_pDepthStencilBuffer->Release();
+		m_pSwapChain->Release();
+		m_pDeviceContext->Release();
+		m_pDevice->Release();
 		
 	}
 
@@ -36,7 +47,7 @@ namespace dae {
 
 		//2. Set pipeline + invoke drawcalls (= RENDER)
 		//...
-
+		m_pMesh->Render(m_pDeviceContext);
 
 		//3. Present backbuffer (SWAP)
 		m_pSwapChain->Present(0, 0);
@@ -165,6 +176,9 @@ namespace dae {
 		viewport.MinDepth = 0.f;
 		viewport.MaxDepth = 1.f;
 		m_pDeviceContext->RSSetViewports(1, &viewport);
+
+		pDxgiFactory->Release();
+		pDxgiFactory = nullptr;
 		 
 		if(FAILED(result))
 			return result;

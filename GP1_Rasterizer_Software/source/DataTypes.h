@@ -42,7 +42,17 @@ namespace dae
 	enum class RenderMode
 	{
 		FinalColor,
-		DepthBuffer
+		DepthBuffer,
+		Size = 2
+	};
+
+	enum class ShadingMode
+	{
+		ObservedArea,
+		Diffuse,
+		Specular,
+		Combined,
+		Size = 4
 	};
 
 	struct Mesh
@@ -53,6 +63,7 @@ namespace dae
 
 		std::vector<Vertex_Out> vertices_out{};
 		Matrix worldMatrix{};
+		Vector3 yawPitchRoll{};
 	};
 
 

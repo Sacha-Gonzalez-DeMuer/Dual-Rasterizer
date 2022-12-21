@@ -33,6 +33,9 @@ namespace dae
 
 		bool SaveBufferToImage() const;
 		void CycleRenderMode();
+		void CycleShadingMode();
+		void ToggleNormalMap();
+		void ToggleRotation();
 
 	private:
 		void RenderLoop();
@@ -44,8 +47,12 @@ namespace dae
 		SDL_Surface* m_pFrontBuffer{ nullptr };
 		SDL_Surface* m_pBackBuffer{ nullptr };
 		uint32_t* m_pBackBufferPixels{};
-
 		float* m_pDepthBufferPixels{};
+
+		RenderMode m_CurrentRenderMode{ RenderMode::FinalColor };
+		ShadingMode m_CurrentShadingMode{ ShadingMode::Combined };
+		bool m_NormalToggled{ true };
+		bool m_RotationToggled{ true };
 		
 		Mesh m_Mesh{};
 		TriangleMesh m_TriangleMesh{};
@@ -56,8 +63,6 @@ namespace dae
 
 		Matrix m_WorldViewProjectionMatrix{ };
 	
-	
-		RenderMode m_CurrentRenderMode{ RenderMode::FinalColor };
 
 		Texture* m_pTexture{ nullptr };
 		Texture* m_pNormalMap{ nullptr };

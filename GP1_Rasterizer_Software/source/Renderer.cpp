@@ -117,8 +117,12 @@ void Renderer::Update(Timer* pTimer)
 	m_Camera.Update(pTimer);
 
 	//Rotate mesh
-	const float yawAngle{ pTimer->GetTotal() };
-	m_Mesh.worldMatrix = Matrix::CreateRotationY(yawAngle);
+	if (m_RotationToggled)
+	{
+		m_Mesh.yawPitchRoll.x += pTimer->GetElapsed();
+		m_Mesh.worldMatrix = Matrix::CreateRotationY(m_Mesh.yawPitchRoll.x);
+	}
+		
 
 	UpdateWorldViewProjectionMatrix(m_Mesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
 }
@@ -281,15 +285,15 @@ void dae::Renderer::PixelLoop(const Triangle& t, const BoundingBox& bb)
 //v's values should be interpolated
 ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
 {
+	ColorRGB finalColor{};
 	const Vector3 lightDirection { .577f, -.577f, .577f };
 	constexpr float lightIntensity{ 7.f };
 
 	constexpr float specularShininess{ 25.f };
 	const float diffuseReflectance{ 1.f }; 
-	const float specular{ m_pSpecularColor->Sample(v.uv).r }; 
+	const float specular{ m_pSpecularColor->Sample(v.uv).r };
 	const float phongExponent{ m_pPhongExponent->Sample(v.uv).g * specularShininess };
-	const Vector3 viewDirection{ Vector3(Vector3(v.position.x, v.position.y, v.position.z) - m_Camera.origin).Normalized() };
-	const ColorRGB ambient{ .025f, .025f, .025f };
+	Vector3 viewDirection{  m_Camera.invViewMatrix.TransformVector(m_Camera.forward).Normalized() };
 
 	//create tangent space transformation matrix
 	const Vector3 binormal{ Vector3::Cross(v.normal, v.tangent ).Normalized() };
@@ -299,22 +303,41 @@ ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v)
 	const ColorRGB sampledNormal{ (2.f * m_pNormalMap->Sample(v.uv) - ColorRGB(1,1,1)) }; //to [-1, 1]
 	const Vector3 vSampledNormal{ Vector3(sampledNormal.r, sampledNormal.g, sampledNormal.b) };
 	const Vector3 tangentSpaceSampledNormal { tangentSpace.TransformVector(vSampledNormal).Normalized() };
-
-	//observedArea
-	const float observedArea{ std::max(0.f, Vector3::Dot(tangentSpaceSampledNormal, -lightDirection))};
-
-	//lambert diffuse
-	const ColorRGB lambert{ BRDF::Lambert(diffuseReflectance, m_pTexture->Sample(v.uv)) };
-	const ColorRGB phong{ BRDF::Phong(specular, phongExponent, -lightDirection, -viewDirection, tangentSpaceSampledNormal.Normalized())  };
 	
-	
-	const ColorRGB BRDF{ lambert * lightIntensity + phong };
+	//choose which normal to use
+	Vector3 usedNormal{};
+	if (m_NormalToggled)
+		usedNormal = tangentSpaceSampledNormal;
+	else
+		usedNormal = v.normal;
 
-	ColorRGB combined{ BRDF * observedArea + ambient };
-	combined.MaxToOne();
+	const float observedArea{ std::max(0.f, Vector3::Dot(usedNormal, -lightDirection)) };
 
-	return combined;
-	//return ColorRGB(1, 1, 1) * observedArea;
+	//BRDFs
+	const ColorRGB lambertDiffuse{ BRDF::Lambert(diffuseReflectance, m_pTexture->Sample(v.uv)) * lightIntensity };
+	const ColorRGB phongSpecular{ BRDF::Phong(specular, phongExponent, lightDirection, -viewDirection, usedNormal)  };
+
+	constexpr ColorRGB ambient{ .025f, .025f, .025f };
+
+	switch (m_CurrentShadingMode)
+	{
+		case ShadingMode::ObservedArea:
+			finalColor += ColorRGB(1, 1, 1) * observedArea;
+			break;
+		case ShadingMode::Diffuse:
+			finalColor += lambertDiffuse * observedArea;
+			break;
+		case ShadingMode::Specular:
+			finalColor += ColorRGB(1,1,1) * phongSpecular * observedArea;
+			break;
+		default:
+		case ShadingMode::Combined:
+			finalColor += lambertDiffuse * observedArea + phongSpecular + ambient;
+	}
+
+	finalColor.MaxToOne();
+
+	return finalColor;
 }
 
 //Transforms vertices in mesh to NDC space and stores them in the meshes vertex_out vector
@@ -458,8 +481,26 @@ void dae::Renderer::CycleRenderMode()
 {
 	int current = static_cast<int>(m_CurrentRenderMode);
 	++current;
-	current = current % 2;
+	current = current % static_cast<int>(RenderMode::Size);
 	m_CurrentRenderMode = static_cast<RenderMode>(current);
+}
+
+void dae::Renderer::CycleShadingMode()
+{
+	int current = static_cast<int>(m_CurrentShadingMode);
+	++current;
+	current = current % static_cast<int>(ShadingMode::Size);
+	m_CurrentShadingMode = static_cast<ShadingMode>(current);
+}
+
+void dae::Renderer::ToggleNormalMap()
+{
+	m_NormalToggled = !m_NormalToggled;
+}
+
+void dae::Renderer::ToggleRotation()
+{
+	m_RotationToggled = !m_RotationToggled;
 }
 
 
