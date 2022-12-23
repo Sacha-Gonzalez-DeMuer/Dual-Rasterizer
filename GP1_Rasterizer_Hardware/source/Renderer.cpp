@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "Mesh.h"
+#include "Effect.h"
+#include "Camera.h"
 
 namespace dae {
 
@@ -9,6 +11,8 @@ namespace dae {
 	{
 		//Initialize
 		SDL_GetWindowSize(pWindow, &m_Width, &m_Height);
+
+		m_pCamera = new Camera({ 0.f, 0.f, -10.f }, 45.f, (static_cast<float>(m_Width) / static_cast<float>(m_Height)));
 
 		//Initialize DirectX pipeline
 		const HRESULT result = InitializeDirectX();
@@ -23,7 +27,7 @@ namespace dae {
 		}
 
 
-		m_pMesh = new Mesh(m_pDevice);
+		m_pMesh = new Mesh(m_pDevice, m_pDeviceContext);
 	}
 
 	Renderer::~Renderer()
@@ -40,6 +44,8 @@ namespace dae {
 
 	void Renderer::Update(const Timer* pTimer)
 	{
+		m_pCamera->Update(pTimer);
+
 		//1. Clear RTV & DSV
 		ColorRGB clearColor { 0.f,0.f,.3f };
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, &clearColor.r);
@@ -47,7 +53,7 @@ namespace dae {
 
 		//2. Set pipeline + invoke drawcalls (= RENDER)
 		//...
-		m_pMesh->Render(m_pDeviceContext);
+		m_pMesh->Render(m_pDevice, m_pDeviceContext, m_pCamera);
 
 		//3. Present backbuffer (SWAP)
 		m_pSwapChain->Present(0, 0);
@@ -180,7 +186,6 @@ namespace dae {
 		pDxgiFactory->Release();
 		pDxgiFactory = nullptr;
 		 
-		if(FAILED(result))
-			return result;
+		return result;
 	}
 }

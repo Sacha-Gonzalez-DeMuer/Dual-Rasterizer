@@ -146,14 +146,33 @@ namespace dae {
 
 	Matrix Matrix::CreateLookAtLH(const Vector3& origin, const Vector3& forward, const Vector3& up)
 	{
-		assert(false && "Not Implemented");
-		return {};
+		Vector3 right{ Vector3::Cross(up, forward).Normalized() };
+
+		Matrix lookAtLh
+		{
+			{right.x, up.x, forward.x, 0.f},
+			{right.y, up.y, forward.y, 0.f},
+			{right.z, up.z, forward.z, 0.f},
+			{-Vector3::Dot(right, origin), -Vector3::Dot(up, origin), -Vector3::Dot(forward, origin), 1.f}
+		};
+
+		return lookAtLh;
 	}
 
 	Matrix Matrix::CreatePerspectiveFovLH(float fov, float aspect, float zn, float zf)
 	{
-		assert(false && "Not Implemented");
-		return {};
+		const float xScale{ 1 / (aspect * fov) };
+		const float yScale{ 1 / fov };
+
+		const float A{ zf / (zf - zn) };
+		const float B{ (-zf * zn) / (zf - zn) };
+
+		return {
+			{xScale, 0, 0, 0},
+			{0, yScale, 0, 0},
+			{0, 0, A, 1},
+			{0, 0, B, 0}
+		};
 	}
 
 	Vector3 Matrix::GetAxisX() const

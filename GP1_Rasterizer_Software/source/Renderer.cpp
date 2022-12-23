@@ -27,7 +27,6 @@ Renderer::Renderer(SDL_Window* pWindow) :
 
 	m_pDepthBufferPixels = new float[m_Width * m_Height];
 
-
 	//Initialize Camera
 	m_Camera.Initialize(60.f, { .0f, .0f, -40.f },
 		(static_cast<float>(m_Width) / static_cast<float>(m_Height)));
@@ -111,7 +110,6 @@ void dae::Renderer::InitializeMesh()
 	m_Mesh.vertices_out.resize(m_Mesh.vertices.size());
 }
 
-
 void Renderer::Update(Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
@@ -122,7 +120,6 @@ void Renderer::Update(Timer* pTimer)
 		m_Mesh.yawPitchRoll.x += pTimer->GetElapsed();
 		m_Mesh.worldMatrix = Matrix::CreateRotationY(m_Mesh.yawPitchRoll.x);
 	}
-		
 
 	UpdateWorldViewProjectionMatrix(m_Mesh.worldMatrix, m_Camera.viewMatrix, m_Camera.projectionMatrix);
 }
