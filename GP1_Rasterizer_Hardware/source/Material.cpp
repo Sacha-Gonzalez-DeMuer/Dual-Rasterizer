@@ -24,7 +24,7 @@ Material::~Material()
     m_pEffect->Release();
     m_pEffect = nullptr;
 
-    m_pWorldViewProjMax->Release();
+    /*m_pWorldViewProjMax->Release();
     m_pWorldViewProjMax = nullptr;
 
     m_pWorldMatrix->Release();
@@ -37,7 +37,7 @@ Material::~Material()
     m_pSamplerState = nullptr;
 
     m_pSampleStateVariable->Release();
-    m_pSampleStateVariable = nullptr;
+    m_pSampleStateVariable = nullptr;*/
 }
 
 void Material::UpdateEffect(const Matrix& worldMatrix, const Matrix& invViewMatrix, const Matrix& worldViewProjection)

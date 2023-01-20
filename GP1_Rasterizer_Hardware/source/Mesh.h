@@ -7,7 +7,7 @@ struct Vertex;
 class Mesh final
 {
 public:
-	Mesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, Material* mat);
+	Mesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, const std::shared_ptr<Material>& mat);
 	~Mesh();
 
 	Mesh(const Mesh&) = delete;
@@ -22,7 +22,7 @@ private:
 	ID3D11Buffer* m_pIndexBuffer;
 	ID3D11InputLayout* m_pInputLayout;
 
-	Material* m_pMaterial;
+	std::shared_ptr<Material> m_pMaterial;
 	
 	uint32_t m_NumIndices{};
 	dae::Matrix m_WorldMatrix{};

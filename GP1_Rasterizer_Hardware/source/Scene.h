@@ -23,7 +23,10 @@ public:
 protected:
 	Camera m_Camera;
 
-	std::vector<Mesh*> m_pMeshes{};
+	void AddMesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, const std::shared_ptr<Material>& mat);
+	void AddMaterial(Material* pMat);
 
-	void AddMesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, Material* mat);
+private:
+	std::vector<Mesh*> m_pMeshes{};
+	std::vector<Material*> m_pMaterials{};
 };

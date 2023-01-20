@@ -48,6 +48,9 @@ namespace dae {
 		m_pSwapChain = nullptr;
 		m_pDeviceContext = nullptr;
 		m_pDevice = nullptr;
+
+
+
 	}
 
 	void Renderer::Update(const Timer* pTimer)

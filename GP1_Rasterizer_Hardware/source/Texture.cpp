@@ -17,10 +17,11 @@ Texture::~Texture()
 	m_pShaderResourceView = nullptr;
 }
 
-Texture* Texture::LoadFromFile(ID3D11Device* pDevice, const std::string& path)
+std::unique_ptr<Texture> Texture::LoadFromFile(ID3D11Device* pDevice, const std::string& path)
 {
-	return new Texture(pDevice, IMG_Load(path.c_str()));
+	return std::make_unique<Texture>(pDevice, IMG_Load(path.c_str()));
 }
+
 
 void Texture::Initialize(ID3D11Device* pDevice, SDL_Surface* pSurface)
 {

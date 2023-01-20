@@ -6,7 +6,7 @@
 #include "Texture.h"
 #include "Utils.h"
 
-Mesh::Mesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, Material* mat)
+Mesh::Mesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, const std::shared_ptr<Material>& mat)
 	: m_pMaterial{mat}
 	, m_NumIndices{0}
 	, m_pIndexBuffer{nullptr}

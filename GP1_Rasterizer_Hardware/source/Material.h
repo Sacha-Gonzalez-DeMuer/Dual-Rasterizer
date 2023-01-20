@@ -15,7 +15,7 @@ public:
 	ID3DX11EffectTechnique* GetTechnique() const { return m_pTechnique; };
 	ID3DX11EffectMatrixVariable* GetWorldViewProjectionMatrix() const { return m_pWorldViewProjMax; };
 	                  
-	void UpdateEffect(const dae::Matrix& worldMatrix, const dae::Matrix& invViewMatrix, const dae::Matrix& worldViewProjection);
+	void UpdateEffect(const Matrix& worldMatrix, const Matrix& invViewMatrix, const Matrix& worldViewProjection);
 	void SetSampler(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
 	virtual void SetTexture(ID3D11Device* pDevice, ID3DX11EffectShaderResourceVariable* srv, const std::string& assetFile);
 

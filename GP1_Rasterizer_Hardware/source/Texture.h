@@ -6,13 +6,13 @@
 class Texture
 {
 public:
+	Texture(ID3D11Device* pDevice, SDL_Surface* pSurface);
 	~Texture();
 
-	static Texture* LoadFromFile(ID3D11Device* pDevice, const std::string& path);
+	static std::unique_ptr<Texture> LoadFromFile(ID3D11Device* pDevice, const std::string& path);
 
 	ID3D11ShaderResourceView* GetSRV() const { return m_pShaderResourceView; };
 private:
-	Texture(ID3D11Device* pDevice, SDL_Surface* pSurface);
 	void Initialize(ID3D11Device* pDevice, SDL_Surface* pSurface);
 
 	ID3D11Texture2D* m_pResource{ nullptr };

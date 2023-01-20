@@ -41,8 +41,6 @@ namespace dae
 
 		std::unique_ptr<MainScene> m_MainScene;
 
-		
-
 		// DIRECTX
 		HRESULT InitializeDirectX();
 		//...

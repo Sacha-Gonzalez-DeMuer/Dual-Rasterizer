@@ -7,7 +7,7 @@ class CombustionMaterial final : public Material
 {
 public:
 	CombustionMaterial(ID3D11Device* pDevice, const std::wstring& assetFile);
-	~CombustionMaterial();
+	virtual ~CombustionMaterial() override;
 	CombustionMaterial(const CombustionMaterial&) = delete;
 	CombustionMaterial(CombustionMaterial&&) noexcept = delete;
 	CombustionMaterial& operator=(const CombustionMaterial&) = delete;

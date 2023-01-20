@@ -131,17 +131,17 @@ float3 PixelShading(VS_OUTPUT input, SamplerState sampleState)
 	// phong
     float specularColor = gSpecularMap.Sample(sampleState, input.TextureUV);
     float sampledGloss = gGlossinessMap.Sample(sampleState, input.TextureUV) * gShininess;
-	
-    float3 r = reflect(-gLightDir, normal);
-    float specularStrength = saturate(dot(r, viewDirection));
-    float3 phongSpecularReflect = 1.0f * pow(specularStrength, gShininess);
+    float3 phong = Phong(specularColor, sampledGloss, gLightDir, viewDirection, normal);
+    //float3 r = reflect(-gLightDir, normal);
+    //float specularStrength = saturate(dot(r, viewDirection));
+    //float3 phongSpecularReflect = 1.0f * pow(specularStrength, gShininess);
     
-    float3 specular = specularColor * phongSpecularReflect;
+    //float3 specular = specularColor * phongSpecularReflect;
     
     
     float3 ambient = float3(.025f, .025f, .025f);
     
-    return (lambertDiffuse * observedArea) + specular + ambient;
+    return (lambertDiffuse * observedArea) + phong + ambient;
 }
 
 //----------------------------------

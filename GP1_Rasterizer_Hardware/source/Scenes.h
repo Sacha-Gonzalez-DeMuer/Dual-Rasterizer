@@ -16,11 +16,10 @@ public:
 
 	void Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext) override
 	{
-		//Make mesh materials
-		MeshMaterial* pChassisMaterial{ new MeshMaterial(pDevice, L"Resources/vehicle_shader.fx") };
-		CombustionMaterial* pCombustionMat{ new CombustionMaterial(pDevice, L"Resources/combustion_shader.fx") };
+		auto pChassisMat{ std::make_shared<MeshMaterial>(pDevice, L"Resources/vehicle_shader.fx") };
+		auto pCombustionMat{ std::make_shared<CombustionMaterial>(pDevice, L"Resources/combustion_shader.fx") };
 
-		AddMesh(pDevice, pDeviceContext, "Resources/vehicle.obj", pChassisMaterial);
+		AddMesh(pDevice, pDeviceContext, "Resources/vehicle.obj", pChassisMat);
 		AddMesh(pDevice, pDeviceContext, "Resources/fireFX.obj", pCombustionMat);
 	}
 };
