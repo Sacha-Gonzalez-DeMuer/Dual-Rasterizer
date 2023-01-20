@@ -41,7 +41,7 @@
     <ClInclude Include="Renderer.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Effect.h">
+    <ClInclude Include="MeshMaterial.h">
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
@@ -56,6 +56,11 @@
     <ClInclude Include="Texture.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Utils.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="CombustionMaterial.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="Scenes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -78,7 +83,7 @@
     <ClCompile Include="Renderer.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Effect.cpp">
+    <ClCompile Include="MeshMaterial.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Mesh.cpp">
@@ -89,6 +94,15 @@
     </ClCompile>
     <ClCompile Include="Texture.cpp">
       <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="CombustionMaterial.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

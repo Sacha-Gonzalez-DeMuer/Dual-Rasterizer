@@ -3,12 +3,12 @@
 #include "Vector2.h"
 #include "ColorRGB.h"
 
-using namespace dae;
-
-struct Vertex_PosCol
+struct Vertex
 {
-	Vector3 position{};
-	ColorRGB color{};
-	Vector2 uv{};
+	dae::Vector3 position{};
+	dae::Vector3 worldPos{};
+	dae::Vector2 uv{};
+	dae::Vector3 normal{};
+	dae::Vector3 tangent{};
 };
 

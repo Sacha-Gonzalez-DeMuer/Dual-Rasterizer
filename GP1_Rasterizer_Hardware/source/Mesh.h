@@ -1,13 +1,13 @@
 #pragma once
-class Effect;
+class Material;
 class Camera;
 class Texture;
-struct Vertex_PosCol;
+struct Vertex;
 
 class Mesh final
 {
 public:
-	Mesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
+	Mesh(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const std::string& filePath, Material* mat);
 	~Mesh();
 
 	Mesh(const Mesh&) = delete;
@@ -15,18 +15,16 @@ public:
 	Mesh& operator=(const Mesh&) = delete;
 	Mesh& operator=(Mesh&&) = delete;
 
-	void Initialize(ID3D11Device* pDevice, std::vector<Vertex_PosCol> vertices, std::vector<uint32_t> indices);
-	void Render(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, Camera* pCamera);
+	void Initialize(ID3D11Device* pDevice, std::vector<Vertex> vertices, std::vector<uint32_t> indices);
+	void Render(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const Camera& pCamera);
 private:
-	//std::vector<dae::Vector3> m_Vertices{};
-	//std::vector<int> m_Indices{};
-
 	ID3D11Buffer* m_pVertexBuffer;
 	ID3D11Buffer* m_pIndexBuffer;
 	ID3D11InputLayout* m_pInputLayout;
 
-	std::unique_ptr<Effect> m_pEffect;
-	Texture* m_pTexture{};
+	Material* m_pMaterial;
+	
 	uint32_t m_NumIndices{};
+	dae::Matrix m_WorldMatrix{};
 };
 

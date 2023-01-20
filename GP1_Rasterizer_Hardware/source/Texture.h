@@ -9,7 +9,6 @@ public:
 	~Texture();
 
 	static Texture* LoadFromFile(ID3D11Device* pDevice, const std::string& path);
-	//dae::ColorRGB Sample(const dae::Vector2& uv) const;
 
 	ID3D11ShaderResourceView* GetSRV() const { return m_pShaderResourceView; };
 private:

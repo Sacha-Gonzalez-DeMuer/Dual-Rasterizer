@@ -1,4 +1,5 @@
 #pragma once
+
 using namespace dae;
 
 class Camera final
@@ -9,9 +10,12 @@ public:
 
 	void Update(const Timer* pTimer);
 
-	Matrix GetViewMatrix() const { return m_ViewMatrix; };
-	Matrix GetProjectionMatrix() const { return m_ProjectionMatrix; };
+	void SetAspectRatio(float aspectRatio) { m_AspectRatio = aspectRatio; };
 
+	dae::Matrix GetViewMatrix() const { return m_ViewMatrix; };
+	dae::Matrix GetInvViewMatrix() const { return m_InvViewMatrix; };
+	dae::Matrix GetProjectionMatrix() const { return m_ProjectionMatrix; };
+	Vector3 GetForward() const { return m_Forward; };
 private:
 	//camera settings
 	Vector3 m_Origin;
@@ -30,9 +34,9 @@ private:
 	float m_TotalYaw;
 	
 	//transformation matrices
-	Matrix m_ViewMatrix;
-	Matrix m_InvViewMatrix;
-	Matrix m_ProjectionMatrix;
+	dae::Matrix m_ViewMatrix;
+	dae::Matrix m_InvViewMatrix;
+	dae::Matrix m_ProjectionMatrix;
 
 	//Member functions
 	//===

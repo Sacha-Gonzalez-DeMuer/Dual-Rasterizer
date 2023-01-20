@@ -1,18 +1,19 @@
 #include "pch.h"
 #include "Renderer.h"
 #include "Mesh.h"
-#include "Effect.h"
+#include "Material.h"
 #include "Camera.h"
+#include "Scenes.h"
+
 
 namespace dae {
 
 	Renderer::Renderer(SDL_Window* pWindow) :
 		m_pWindow(pWindow)
+		, m_MainScene{std::make_unique<MainScene>()}
 	{
 		//Initialize
 		SDL_GetWindowSize(pWindow, &m_Width, &m_Height);
-
-		m_pCamera = new Camera({ 0.f, 0.f, -10.f }, 45.f, (static_cast<float>(m_Width) / static_cast<float>(m_Height)));
 
 		//Initialize DirectX pipeline
 		const HRESULT result = InitializeDirectX();
@@ -26,8 +27,8 @@ namespace dae {
 			std::cout << "DirectX initialization failed!\n";
 		}
 
-
-		m_pMesh = new Mesh(m_pDevice, m_pDeviceContext);
+		m_MainScene->Initialize(m_pDevice, m_pDeviceContext);
+		m_MainScene->GetCamera().SetAspectRatio(static_cast<float>(m_Width) / static_cast<float>(m_Height));
 	}
 
 	Renderer::~Renderer()
@@ -39,12 +40,19 @@ namespace dae {
 		m_pSwapChain->Release();
 		m_pDeviceContext->Release();
 		m_pDevice->Release();
-		
+
+		m_pRenderTargetView = nullptr;
+		m_pRenderTargetBuffer = nullptr;
+		m_pDepthStencilBuffer = nullptr;
+		m_pDepthStencilView = nullptr;
+		m_pSwapChain = nullptr;
+		m_pDeviceContext = nullptr;
+		m_pDevice = nullptr;
 	}
 
 	void Renderer::Update(const Timer* pTimer)
 	{
-		m_pCamera->Update(pTimer);
+		m_MainScene->Update(pTimer);
 
 		//1. Clear RTV & DSV
 		ColorRGB clearColor { 0.f,0.f,.3f };
@@ -53,7 +61,9 @@ namespace dae {
 
 		//2. Set pipeline + invoke drawcalls (= RENDER)
 		//...
-		m_pMesh->Render(m_pDevice, m_pDeviceContext, m_pCamera);
+		//m_pChassisMesh->Render(m_pDevice, m_pDeviceContext, m_pCamera);
+		m_MainScene->Render(m_pDevice, m_pDeviceContext);
+
 
 		//3. Present backbuffer (SWAP)
 		m_pSwapChain->Present(0, 0);
@@ -64,7 +74,6 @@ namespace dae {
 	{
 		if (!m_IsInitialized)
 			return;
-
 	}
 
 	HRESULT Renderer::InitializeDirectX()

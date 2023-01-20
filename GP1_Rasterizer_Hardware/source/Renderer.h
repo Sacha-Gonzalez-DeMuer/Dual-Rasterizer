@@ -4,6 +4,8 @@ struct SDL_Window;
 struct SDL_Surface;
 class Mesh;
 class Camera;
+class Scene;
+class MainScene;
 
 namespace dae
 {
@@ -37,10 +39,11 @@ namespace dae
 		ID3D11Texture2D* m_pRenderTargetBuffer;
 		ID3D11RenderTargetView* m_pRenderTargetView;
 
-		Mesh* m_pMesh;
-		Camera* m_pCamera;
+		std::unique_ptr<MainScene> m_MainScene;
 
-		//DIRECTX
+		
+
+		// DIRECTX
 		HRESULT InitializeDirectX();
 		//...
 	};

@@ -40,7 +40,7 @@ Camera::Camera(const Vector3& origin, float fovAngle, float aspectRatio)
 
 void Camera::Update(const Timer* pTimer)
 {
-	const float constSpeed{ pTimer->GetElapsed() * m_MoveSpeed };
+	const float constSpeed{ pTimer->GetElapsed() * m_MoveSpeed * 100};
 
 	//handle camera control
 	HandleMouseTransforms(constSpeed);
