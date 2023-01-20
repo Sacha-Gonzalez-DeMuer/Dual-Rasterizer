@@ -139,10 +139,6 @@ void Renderer::Render()
 	SDL_UpdateWindowSurface(m_pWindow);
 }
 
-bool Renderer::SaveBufferToImage() const
-{	
-	return SDL_SaveBMP(m_pBackBuffer, "Rasterizer_ColorBuffer.bmp");
-}
 
 
 void dae::Renderer::RenderLoop()

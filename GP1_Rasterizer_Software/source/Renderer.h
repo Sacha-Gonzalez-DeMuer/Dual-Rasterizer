@@ -55,7 +55,7 @@ namespace dae
 		bool m_RotationToggled{ true };
 		
 		Mesh m_Mesh{};
-		TriangleMesh m_TriangleMesh{};
+		//TriangleMesh m_TriangleMesh{};
 		Camera m_Camera{};
 		Matrix m_WorldMatrix{};
 		Matrix m_ViewMatrix{};

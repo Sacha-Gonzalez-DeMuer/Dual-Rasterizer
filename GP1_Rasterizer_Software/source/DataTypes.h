@@ -106,9 +106,5 @@ namespace dae
 
 	};
 
-	struct TriangleMesh
-	{
-		std::vector<Triangle> triangles{};
-		Matrix worldMatrix{};
-	};
+
 }

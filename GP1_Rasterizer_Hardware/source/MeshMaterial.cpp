@@ -12,7 +12,6 @@ MeshMaterial::MeshMaterial(ID3D11Device* pDevice, const std::wstring& assetFile)
     SetTexture(pDevice, m_pNormalMapVariable, "Resources/vehicle_normal.png");
     SetTexture(pDevice, m_pSpecularMapVariable, "Resources/vehicle_specular.png");
     SetTexture(pDevice, m_pGlossinessMapVariable, "Resources/vehicle_gloss.png");
-
 }
 
 void MeshMaterial::SetShaderResources()
