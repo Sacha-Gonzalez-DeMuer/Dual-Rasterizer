@@ -1,5 +1,7 @@
 #pragma once
 #include "Texture.h"
+#include "Camera.h"
+#include "Mesh.h"
 using namespace dae;
 
 class Material
@@ -16,8 +18,14 @@ public:
 	ID3DX11EffectMatrixVariable* GetWorldViewProjectionMatrix() const { return m_pWorldViewProjMax; };
 	                  
 	void UpdateEffect(const Matrix& worldMatrix, const Matrix& invViewMatrix, const Matrix& worldViewProjection);
-	void SetSampler(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
-	virtual std::unique_ptr<Texture> SetTexture(ID3D11Device * pDevice, ID3DX11EffectShaderResourceVariable * srv, const std::string & assetFile);
+	void SetSampler(SamplerState state, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
+	virtual std::shared_ptr<Texture> SetTexture(ID3D11Device * pDevice, ID3DX11EffectShaderResourceVariable * srv, const std::string & assetFile);
+
+	void SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
+
+	// Software renderer
+	ColorRGB Sample(const Vector2& uv, const Texture& texture);
+	virtual ColorRGB PixelShading(const Vertex_Out& v, const Mesh& mesh, const Camera& camera) const = 0;
 
 protected:
 	ID3DX11Effect* m_pEffect{ nullptr };
@@ -36,6 +44,8 @@ private:
 	ID3DX11EffectMatrixVariable* m_pWorldMatrix{ nullptr };
 	ID3DX11EffectMatrixVariable* m_pInvViewMatrix{ nullptr };
 
-	ID3D11SamplerState* m_pSamplerState{ nullptr };
+	
 	ID3DX11EffectSamplerVariable* m_pSampleStateVariable{ nullptr };
+
+	ID3DX11EffectRasterizerVariable* m_pRasterizerVariable{ nullptr };
 };

@@ -83,4 +83,12 @@ namespace dae
 			m_IsStopped = true;
 		}
 	}
+
+	void Timer::TogglePrintFPW()
+	{
+		m_PrintFPW = !m_PrintFPW;
+
+		std::cout << "TOGGLE PRINT FPW: ";
+		m_PrintFPW ? std::cout << "ON\n" : std::cout << "OFF\n";
+	}
 }

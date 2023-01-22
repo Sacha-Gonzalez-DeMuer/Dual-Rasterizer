@@ -9,11 +9,52 @@ Mesh::Mesh(const std::string& filePath)
 	, m_pIndexBuffer{nullptr}
 	, m_pInputLayout{nullptr}
 	, m_pMaterial{nullptr}
+	, m_WorldMatrix{}
+	, m_YawPitchRoll{}
+	, m_RotationEnabled{true}
 	, m_Vertices{}
 	, m_Indices{}
 	, m_NumIndices{}
+	, m_RenderEnabled{true}
+	, m_DXInitialized{false}
+	, m_SInitialized{false}
 {
-	dae::Utils::ParseOBJ(filePath, m_Vertices, m_Indices, true);
+	dae::Utils::ParseOBJ(filePath, m_Vertices, m_Indices, false);
+}
+
+Mesh::~Mesh()
+{
+	std::cout << "Mesh destructor\n";
+	m_pVertexBuffer->Release();
+	m_pVertexBuffer = nullptr;
+
+	m_pIndexBuffer->Release();
+	m_pIndexBuffer = nullptr;
+
+	m_pInputLayout->Release();
+	m_pInputLayout = nullptr;
+}
+
+void Mesh::SInitialize()
+{
+	m_TransformedVertices.resize(m_Vertices.size());
+
+	m_Triangles.resize(m_Vertices.size() / 3);
+	for (size_t i = 0; i < m_Vertices.size(); i += 3)
+	{
+		for (size_t j = 0; j < 3; ++j)
+		{
+			m_Triangles[i / 3].vertices_in[j] = m_Vertices[i + j];
+		}
+	}
+
+	for (auto& t : m_Triangles)
+	{
+		t.CalculateEdges();
+		t.recipTotalArea = 1 / t.GetArea();
+	}
+
+	m_SInitialized = true;
 }
 
 void Mesh::DXInitialize(ID3D11Device* pDevice)
@@ -90,15 +131,23 @@ void Mesh::DXInitialize(ID3D11Device* pDevice)
 
 	if (FAILED(result))
 		return;
+
+	m_DXInitialized = true;
 }
 
-void Mesh::SRender()
+void Mesh::Update(const dae::Timer* pTimer)
 {
-
+	if (m_RotationEnabled)
+	{
+		m_YawPitchRoll.x += pTimer->GetElapsed();
+		m_WorldMatrix = Matrix::CreateRotationY(m_YawPitchRoll.x);
+	}
 }
 
 void Mesh::DXRender(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, const Camera& camera)
 {
+	if (!m_RenderEnabled || !m_DXInitialized) return;
+
 	//1. Set Primitive Topology
 	pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -114,7 +163,7 @@ void Mesh::DXRender(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, 
 	pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	//5. Update effect matrices
-	Matrix worldViewProjectionMatrix{ camera.GetViewMatrix() * camera.GetProjectionMatrix() };
+	Matrix worldViewProjectionMatrix{ m_WorldMatrix * camera.GetViewMatrix() * camera.GetProjectionMatrix() };
 	m_pMaterial->UpdateEffect(m_WorldMatrix, camera.GetInvViewMatrix(), worldViewProjectionMatrix);
 
 	//7. Draw
@@ -130,4 +179,83 @@ void Mesh::DXRender(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext, 
 void Mesh::SetMaterial(const std::shared_ptr<Material>& mat)
 {
 	m_pMaterial = mat;
+}
+
+ColorRGB Mesh::PixelShading(const Vertex_Out& v, const Camera& camera) const
+{
+	return m_pMaterial->PixelShading(v, *this, camera);
+}
+
+void Mesh::TriangleTransformationFunction(const Matrix& worldViewProjectionMatrix)
+{
+	for (auto& triangle : m_Triangles)
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			triangle.vertices[i].position = { triangle.vertices_in[i].position.x, triangle.vertices_in[i].position.y, triangle.vertices_in[i].position.z, 1 };
+
+			//transform normals & tangents from model space to world space
+			Matrix worldMatrix3x3{ m_WorldMatrix.GetAxisX(), m_WorldMatrix.GetAxisY(), m_WorldMatrix.GetAxisZ(), Vector3::Zero };
+			triangle.vertices[i].normal = worldMatrix3x3.TransformVector(triangle.vertices_in[i].normal);
+			triangle.vertices[i].tangent = worldMatrix3x3.TransformVector(triangle.vertices_in[i].tangent);
+
+			//position to clip space
+			triangle.vertices[i].position = worldViewProjectionMatrix.TransformPoint(triangle.vertices[i].position);
+
+			const float recipW{ 1 / triangle.vertices[i].position.w };
+
+			//apply perspective divide => clip space -> NDC space 
+			triangle.vertices[i].position.x *= recipW;
+			triangle.vertices[i].position.y *= recipW;
+			triangle.vertices[i].position.z *= recipW;
+
+			// Copy the UV coordinates from the input vertex
+			triangle.vertices[i].uv = triangle.vertices_in[i].uv;
+		}
+	}
+}
+
+void Mesh::VertexTransformationFunction(const Matrix& worldViewProjectionMatrix)
+{	
+	//auto& verticesOut{ mesh->GetVerticesOut() };
+
+	// Transform the vertices from world space to clip space
+	for (size_t i = 0; i < m_Vertices.size(); ++i)
+	{
+		m_TransformedVertices[i].position = { m_Vertices[i].position.x, m_Vertices[i].position.y, m_Vertices[i].position.z, 1 };
+
+		//transform normals & tangents from model space to world space
+		Matrix worldMatrix3x3{ m_WorldMatrix.GetAxisX(),  m_WorldMatrix.GetAxisY(), m_WorldMatrix.GetAxisZ(), Vector3::Zero};
+		m_TransformedVertices[i].normal = worldMatrix3x3.TransformVector(m_Vertices[i].normal);
+		m_TransformedVertices[i].tangent = worldMatrix3x3.TransformVector(m_Vertices[i].tangent);
+
+		//position to clip space
+		m_TransformedVertices[i].position = worldViewProjectionMatrix.TransformPoint(m_TransformedVertices[i].position);
+
+		const float recipW{ 1 / m_TransformedVertices[i].position.w };
+
+		//apply perspective divide => clip space -> NDC space
+		m_TransformedVertices[i].position.x *= recipW;
+		m_TransformedVertices[i].position.y *= recipW;
+		m_TransformedVertices[i].position.z *= recipW;
+
+		// Copy the UV coordinates from the input vertex
+		m_TransformedVertices[i].uv = m_Vertices[i].uv;
+	}
+}
+
+
+void Mesh::ToggleRotation()
+{
+	m_RotationEnabled = !m_RotationEnabled;
+}
+
+void Mesh::SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext)
+{
+	m_pMaterial->SetCullMode(mode, pDevice, pDeviceContext);
+}
+
+void Mesh::ToggleRender()
+{
+	m_RenderEnabled = !m_RenderEnabled;
 }

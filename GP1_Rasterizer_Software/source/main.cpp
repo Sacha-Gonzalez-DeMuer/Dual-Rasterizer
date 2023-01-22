@@ -101,15 +101,15 @@ int main(int argc, char* args[])
 			std::cout << "dFPS: " << pTimer->GetdFPS() << std::endl;
 		}
 
-		//Save screenshot after full render
-		if (takeScreenshot)
-		{
-			if (!pRenderer->SaveBufferToImage())
-				std::cout << "Screenshot saved!" << std::endl;
-			else
-				std::cout << "Something went wrong. Screenshot not saved!" << std::endl;
-			takeScreenshot = false;
-		}
+		////Save screenshot after full render
+		//if (takeScreenshot)
+		//{
+		//	//if (!pRenderer->SaveBufferToImage())
+		//		std::cout << "Screenshot saved!" << std::endl;
+		//	else
+		//		std::cout << "Something went wrong. Screenshot not saved!" << std::endl;
+		//	takeScreenshot = false;
+		//}
 	}
 	pTimer->Stop();
 

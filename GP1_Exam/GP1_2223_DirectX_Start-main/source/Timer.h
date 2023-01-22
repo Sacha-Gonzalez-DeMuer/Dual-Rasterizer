@@ -27,7 +27,12 @@ namespace dae
 		float GetTotal() const { return m_TotalTime; };
 		bool IsRunning() const { return !m_IsStopped; };
 
+		void TogglePrintFPW();
+		bool PrintFPW() const { return m_PrintFPW; };
+
 	private:
+		bool m_PrintFPW;
+
 		uint64_t m_BaseTime = 0;
 		uint64_t m_PausedTime = 0;
 		uint64_t m_StopTime = 0;

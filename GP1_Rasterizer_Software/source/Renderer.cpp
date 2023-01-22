@@ -147,15 +147,23 @@ void dae::Renderer::RenderLoop()
 	std::fill_n(m_pDepthBufferPixels, m_Width * m_Height, FLT_MAX);
 	SDL_FillRect(m_pBackBuffer, NULL, SDL_MapRGB(m_pBackBuffer->format, 100, 100, 100));
 
+
+
+
 	//world -> NDC
 	VertexTransformationFunction(m_Mesh);
 
 	//for every tri
 	for (size_t i = 0; i < m_Mesh.vertices_out.size(); i += 3)
 	{
+
+
 		//Construct Triangle
 		Triangle t{ { m_Mesh.vertices_out[i], m_Mesh.vertices_out[i + 1], m_Mesh.vertices_out[i + 2] } };
 		
+
+
+
 		if (!IsTriangleInFrustum(t)) continue; //frustum culling
 
 		for (size_t j = 0; j < 3; j++)

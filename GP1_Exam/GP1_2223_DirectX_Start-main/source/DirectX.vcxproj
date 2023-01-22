@@ -78,11 +78,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BRDFs.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ColorRGB.h" />
     <ClInclude Include="CombinedRenderer.h" />
+    <ClInclude Include="CombustionMaterial.h" />
     <ClInclude Include="DataTypes.h" />
     <ClInclude Include="DXRenderer.h" />
+    <ClInclude Include="FilePaths.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MathHelpers.h" />
     <ClInclude Include="Matrix.h" />
@@ -105,6 +108,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CombinedRenderer.cpp" />
+    <ClCompile Include="CombustionMaterial.cpp" />
     <ClCompile Include="DXRenderer.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Matrix.cpp">

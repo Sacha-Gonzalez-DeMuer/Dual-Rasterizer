@@ -19,10 +19,10 @@ public:
 	virtual void Initialize(ID3D11Device* pDevice = nullptr) = 0;
 	void Update(const dae::Timer* pTimer);
 
-	virtual void SRender();
 	virtual void DXRender(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
 
 	Camera& GetCamera() { return m_Camera; };
+	std::vector<std::shared_ptr<Mesh>> GetMeshes() const { return m_pMeshes; };
 
 protected:
 	Camera m_Camera;

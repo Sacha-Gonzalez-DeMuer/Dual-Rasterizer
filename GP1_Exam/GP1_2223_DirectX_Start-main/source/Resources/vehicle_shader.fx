@@ -22,6 +22,7 @@ RasterizerState gRasterizerState
     CullMode = back;
     FrontCounterClockwise = false;
 };
+
 BlendState gBlendState
 {
 	BlendEnable[0] = false;
@@ -83,11 +84,12 @@ struct VS_OUTPUT
 
 float3 Phong(float3 specularColor, float gloss, float3 lightDir, float3 viewDir, float3 normal)
 {
-    float3 R = reflect(-lightDir, normal);
-    float NdotL = saturate(dot(normal, lightDir));
-    float VdotR = saturate(dot(viewDir, R));
-    float specular = (gloss + 2) / (2 * 3.14159265f) * pow(NdotL, gloss) * pow(VdotR, gloss);
-    return specularColor * specular;
+    float3 r = reflect(-gLightDir, normal);
+    float specularStrength = saturate(dot(r, viewDir));
+    float3 phongSpecular = 1.0f * pow(specularStrength, gShininess);
+    float3 phong = specularColor * phongSpecular;
+
+    return phong;
 }
 
 float3 Lambert(float reflectance, float3 diffuseColor)
@@ -131,13 +133,15 @@ float3 PixelShading(VS_OUTPUT input, SamplerState sampleState)
 	// phong
     float specularColor = gSpecularMap.Sample(sampleState, input.TextureUV);
     float sampledGloss = gGlossinessMap.Sample(sampleState, input.TextureUV) * gShininess;
+    
+
+    float3 r = reflect(-gLightDir, normal);
+    float specularStrength = saturate(dot(r, viewDirection));
+    float3 phongSpecularReflect = 1.0f * pow(specularStrength, gShininess);
+    
+    float3 specular = specularColor * phongSpecularReflect;
+    
     float3 phong = Phong(specularColor, sampledGloss, gLightDir, viewDirection, normal);
-    //float3 r = reflect(-gLightDir, normal);
-    //float specularStrength = saturate(dot(r, viewDirection));
-    //float3 phongSpecularReflect = 1.0f * pow(specularStrength, gShininess);
-    
-    //float3 specular = specularColor * phongSpecularReflect;
-    
     
     float3 ambient = float3(.025f, .025f, .025f);
     

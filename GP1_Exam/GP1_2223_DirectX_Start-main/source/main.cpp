@@ -8,9 +8,13 @@
 #include "Timer.h"
 #include "Renderer.h"
 #include "CombinedRenderer.h"
+#include "MeshManager.h"
+#include "FilePaths.h"
 
 void ShutDown(SDL_Window* pWindow)
 {
+	delete MeshManager::Get();
+
 	SDL_DestroyWindow(pWindow);
 	SDL_Quit();
 }
@@ -57,7 +61,24 @@ int main(int argc, char* args[])
 				break;
 			case SDL_KEYUP:
 				//Test for a key
-				//if (e.key.keysym.scancode == SDL_SCANCODE_X)
+				if (e.key.keysym.scancode == SDL_SCANCODE_F1)
+					pRenderer->ToggleGPU();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F2)
+					pRenderer->ToggleRotation();
+
+				if(e.key.keysym.scancode == SDL_SCANCODE_F3)
+					MeshManager::Get()->GetMesh(FILE_OBJ_FIREFX)->ToggleRender();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F9)
+					pRenderer->CycleCullMode();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F10)
+					pRenderer->ToggleClearColor();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F11)
+					pTimer->TogglePrintFPW();
+
 				break;
 			default: ;
 			}
@@ -72,7 +93,7 @@ int main(int argc, char* args[])
 		//--------- Timer ---------
 		pTimer->Update();
 		printTimer += pTimer->GetElapsed();
-		if (printTimer >= 1.f)
+		if (pTimer->PrintFPW() && printTimer >= 1.f)
 		{
 			printTimer = 0.f;
 			std::cout << "dFPS: " << pTimer->GetdFPS() << std::endl;

@@ -17,6 +17,9 @@
     <Filter Include="Shared">
       <UniqueIdentifier>{4e92f83c-fb7f-41b6-802b-e1b72c4d1fdf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shared\Materials">
+      <UniqueIdentifier>{3a9a6f88-8cb0-4cc7-b5d7-40d638b75b68}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -41,12 +44,6 @@
     <ClInclude Include="ColorRGB.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="DataTypes.h" />
-    <ClInclude Include="Utils.h" />
-    <ClInclude Include="Texture.h" />
-    <ClInclude Include="CombinedRenderer.h" />
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="VehicleScene.h" />
     <ClInclude Include="DXRenderer.h">
       <Filter>DXRenderer</Filter>
     </ClInclude>
@@ -54,9 +51,6 @@
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
-    <ClInclude Include="Material.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="SRenderer.h">
@@ -71,9 +65,37 @@
     <ClInclude Include="Timer.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="VehicleMaterial.h">
+    <ClInclude Include="CombinedRenderer.h">
       <Filter>Shared</Filter>
     </ClInclude>
+    <ClInclude Include="DataTypes.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="VehicleScene.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="BRDFs.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="VehicleMaterial.h">
+      <Filter>Shared\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Shared\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="CombustionMaterial.h">
+      <Filter>Shared\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FilePaths.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -94,9 +116,6 @@
       <Filter>Math</Filter>
     </ClCompile>
     <ClCompile Include="Scene.cpp">
-      <Filter>Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Material.cpp">
       <Filter>Math</Filter>
     </ClCompile>
     <ClCompile Include="Renderer.cpp">
@@ -120,11 +139,17 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="VehicleMaterial.cpp">
-      <Filter>Shared</Filter>
-    </ClCompile>
     <ClCompile Include="MeshManager.cpp">
       <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="VehicleMaterial.cpp">
+      <Filter>Shared\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Shared\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="CombustionMaterial.cpp">
+      <Filter>Shared\Materials</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

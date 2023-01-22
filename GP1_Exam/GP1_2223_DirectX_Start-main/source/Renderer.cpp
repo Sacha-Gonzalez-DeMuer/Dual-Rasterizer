@@ -20,3 +20,13 @@ Renderer::~Renderer()
 
 }
 
+void Renderer::UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, const Matrix& viewMatrix, const Matrix& projectionMatrix)
+{
+	//if any transformation matrix changes, update worldViewProjectionMatrix
+	m_WorldViewProjectionMatrix = worldMatrix * viewMatrix * projectionMatrix;
+}
+
+void Renderer::ToggleClearColor()
+{
+	m_ClearColor = !m_ClearColor;
+}

@@ -26,3 +26,10 @@
 #include "Vector3.h"
 #include "Timer.h"
 #include "DataTypes.h"
+
+
+// Color defines
+#define BACKGROUND_SOFTWARE ColorRGB { .39f, .39f, .39f }
+#define BACKGROUND_HARDWARE ColorRGB { .39f, .59f, .93f }
+#define BACKGROUND_CLEAR ColorRGB{ .1f, .1f, .1f }
+

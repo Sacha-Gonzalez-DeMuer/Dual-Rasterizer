@@ -28,6 +28,6 @@ protected:
 	ID3D11RenderTargetView* m_pRenderTargetView;
 
 	HRESULT InitializeDirectX();
-	
+
 };
 

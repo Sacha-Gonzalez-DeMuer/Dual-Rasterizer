@@ -21,6 +21,8 @@ DXRenderer::DXRenderer(SDL_Window* pWindow)
 
 DXRenderer::~DXRenderer()
 {
+	std::cout << "Hardware Destructor\n";
+
 	m_pRenderTargetView->Release();
 	m_pRenderTargetBuffer->Release();
 	m_pDepthStencilView->Release();
@@ -40,9 +42,7 @@ DXRenderer::~DXRenderer()
 
 void DXRenderer::Update(dae::Timer* pTimer)
 {
-	//m_pScene->Update(pTimer);
-
-
+	m_pScene->Update(pTimer);
 }
 
 void DXRenderer::Render()
@@ -51,7 +51,8 @@ void DXRenderer::Render()
 		return;
 
 	//1. Clear RTV & DSV
-	dae::ColorRGB clearColor{ 0.f,0.f,.3f };
+	dae::ColorRGB clearColor{ m_ClearColor ? BACKGROUND_HARDWARE : BACKGROUND_CLEAR };
+
 	m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, &clearColor.r);
 	m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.f, 0);
 

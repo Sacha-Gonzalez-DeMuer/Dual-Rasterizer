@@ -14,17 +14,12 @@ Scene::~Scene()
 {
 }
 
-
 void Scene::Update(const dae::Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
-}
-
-void Scene::SRender()
-{
 	for (const auto& pMesh : m_pMeshes)
 	{
-		pMesh->SRender();
+		pMesh->Update(pTimer);
 	}
 }
 

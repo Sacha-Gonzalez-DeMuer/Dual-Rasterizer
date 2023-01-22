@@ -2,12 +2,14 @@
 #include "Scene.h"
 #include "MeshManager.h"
 #include "VehicleMaterial.h"
+#include "CombustionMaterial.h"
+#include "FilePaths.h"
 
 class VehicleScene : public Scene
 {
 public:
 	VehicleScene() = default;
-	~VehicleScene() override = default;
+	virtual ~VehicleScene() = default;
 
 	VehicleScene(const VehicleScene&) = delete;
 	VehicleScene(VehicleScene&&) noexcept = delete;
@@ -16,12 +18,27 @@ public:
 
 	void Initialize(ID3D11Device* pDevice)
 	{
-		auto mesh{ AddMesh(MeshManager::Get()->GetMesh("Resources/vehicle.obj")) };
-		auto pVehicleMat{ std::make_shared<VehicleMaterial>(pDevice, L"Resources/vehicle_shader.fx") };
+		// Get needed meshes
+		auto pVehicleMesh{ AddMesh(MeshManager::Get()->GetMesh(FILE_OBJ_VEHICLE)) };
+		auto pCombustionMesh{ AddMesh(MeshManager::Get()->GetMesh(FILE_OBJ_FIREFX)) };
 
-		mesh->SetMaterial(pVehicleMat);
+		// Get needed materials
+		auto pVehicleMat{ std::make_shared<VehicleMaterial>(pDevice, FILE_FX_VEHICLE) };
+		auto pCombustionMat{ std::make_shared<CombustionMaterial>(pDevice, FILE_FX_FIRE) };
+
+		// Assign materials meshes
+		pVehicleMesh->SetMaterial(pVehicleMat);
+		pCombustionMesh->SetMaterial(pCombustionMat);
+
+		// Initialize DirectX
 		if (pDevice)
-			mesh->DXInitialize(pDevice);
+		{
+			pVehicleMesh->DXInitialize(pDevice);
+			pCombustionMesh->DXInitialize(pDevice);
+		}
+
+		// Initialize Software rendering
+		pVehicleMesh->SInitialize();
 	}
 };
 

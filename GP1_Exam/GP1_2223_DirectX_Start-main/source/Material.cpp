@@ -10,8 +10,11 @@ Material::Material(ID3D11Device* pDevice, const std::wstring& assetFile)
     if (!m_pTechnique->IsValid())
         std::wcout << L"Technique not valid\n";
 
-    // Set Sampler
+    // Get FX Sampler
     m_pSampleStateVariable = m_pEffect->GetVariableByName("gSamplePoint")->AsSampler();
+
+    // Get FX Rasterizer
+    m_pRasterizerVariable = m_pEffect->GetVariableByName("gRasterizerState")->AsRasterizer();
 
     SetMatrices();
 }
@@ -118,11 +121,26 @@ ID3DX11Effect* Material::LoadEffect(ID3D11Device* pDevice, const std::wstring& a
 }
 
 
-void Material::SetSampler(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext)
+void Material::SetSampler(SamplerState state, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext)
 {
     //https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_sampler_desc
     D3D11_SAMPLER_DESC desc{};
-    desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+
+    switch (state)
+    {
+    case SamplerState::Point:
+        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        break;
+
+    case SamplerState::Linear:
+        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        break;
+
+    case SamplerState::Anisotropic:
+        desc.Filter = D3D11_FILTER_ANISOTROPIC;
+        break;
+    }
+ 
     desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -132,23 +150,71 @@ void Material::SetSampler(ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceCon
     desc.MinLOD = 0;
     desc.MaxLOD = D3D11_FLOAT32_MAX;
 
-    HRESULT result = pDevice->CreateSamplerState(&desc, &m_pSamplerState);
+    ID3D11SamplerState* pSamplerState{ nullptr };
+    HRESULT result = pDevice->CreateSamplerState(&desc, &pSamplerState);
     if (FAILED(result))
     {
         std::cout << "Failed to create sampler state\n";
         return;
     }
 
-    pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerState);
-    m_pSampleStateVariable->SetSampler(0, m_pSamplerState);
+    pDeviceContext->PSSetSamplers(0, 1, &pSamplerState);
+    m_pSampleStateVariable->SetSampler(0, pSamplerState);
 }
 
-std::unique_ptr<Texture> Material::SetTexture(ID3D11Device* pDevice, ID3DX11EffectShaderResourceVariable* srv, const std::string& assetFile)
+std::shared_ptr<Texture> Material::SetTexture(ID3D11Device* pDevice, ID3DX11EffectShaderResourceVariable* srv, const std::string& assetFile)
 {
     auto pTexture{ Texture::LoadFromFile(pDevice, assetFile) };
     if(srv)
      srv->SetResource(pTexture->GetSRV());
     return pTexture;
+}
+
+void Material::SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext)
+{
+    D3D11_RASTERIZER_DESC rasterDesc;
+
+
+    rasterDesc.FillMode = D3D11_FILL_SOLID;
+    switch (mode)
+    {
+    case CullMode::Backface:
+        rasterDesc.CullMode = D3D11_CULL_BACK;
+        break;
+
+    case CullMode::Frontface:
+        rasterDesc.CullMode = D3D11_CULL_FRONT;
+        break;
+
+    case CullMode::None:
+        rasterDesc.CullMode = D3D11_CULL_NONE;
+        break;
+    }
+
+    rasterDesc.FrontCounterClockwise = true;
+    rasterDesc.DepthBias = 0;
+    rasterDesc.DepthBiasClamp = 0.0f;
+    rasterDesc.SlopeScaledDepthBias = 0.0f;
+    rasterDesc.DepthClipEnable = true;
+    rasterDesc.ScissorEnable = false;
+    rasterDesc.MultisampleEnable = false;
+    rasterDesc.AntialiasedLineEnable = false;
+
+    ID3D11RasterizerState* rasterState;
+    HRESULT hr = pDevice->CreateRasterizerState(&rasterDesc, &rasterState);
+    if (FAILED(hr))
+    {
+        std::cout << "Failed to set cull mode\n";
+        return;
+    }
+
+    pDeviceContext->RSSetState(rasterState);
+    m_pRasterizerVariable->SetRasterizerState(0, rasterState);
+}
+
+ColorRGB Material::Sample(const Vector2& uv, const Texture& texture)
+{
+    return ColorRGB();
 }
 
 

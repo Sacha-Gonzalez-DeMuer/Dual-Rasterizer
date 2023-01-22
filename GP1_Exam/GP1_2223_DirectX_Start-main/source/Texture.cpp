@@ -4,24 +4,55 @@
 #include "ColorRGB.h"
 
 Texture::Texture(ID3D11Device* pDevice, SDL_Surface* pSurface)
+	: m_pSurface{pSurface}
+	, m_pSurfacePixels{ (uint32_t*)pSurface->pixels }
 {
 	Initialize(pDevice, pSurface);
 }
 
 Texture::~Texture()
 {
-	m_pResource->Release();
-	m_pResource = nullptr;
+	if (m_pResource)
+	{
+		m_pResource->Release();
+		m_pResource = nullptr;
+	}
 
-	m_pShaderResourceView->Release();
-	m_pShaderResourceView = nullptr;
+	if (m_pShaderResourceView)
+	{
+		m_pShaderResourceView->Release();
+		m_pShaderResourceView = nullptr;
+	}
+
+	if (m_pSurface)
+	{
+		SDL_FreeSurface(m_pSurface);
+		m_pSurface = nullptr;
+	}
 }
 
-std::unique_ptr<Texture> Texture::LoadFromFile(ID3D11Device* pDevice, const std::string& path)
+std::shared_ptr<Texture> Texture::LoadFromFile(ID3D11Device* pDevice, const std::string& path)
 {
-	return std::make_unique<Texture>(pDevice, IMG_Load(path.c_str()));
+	return std::make_shared<Texture>(pDevice, IMG_Load(path.c_str()));
 }
 
+dae::ColorRGB Texture::Sample(const dae::Vector2& uv) const
+{
+	//Sample the correct texel for the given uv
+	Uint8 r{}, g{}, b{};
+
+	//[0,1] -> [0, w/h]
+	const uint32_t x{ static_cast<uint32_t>(uv.x * m_pSurface->w) };
+	const uint32_t y{ static_cast<uint32_t>(uv.y * m_pSurface->h) };
+
+	//u, v coords to idx
+	const uint32_t pixel{ static_cast<uint32_t>(m_pSurfacePixels[x + (y * m_pSurface->w)]) };
+
+	SDL_GetRGB(pixel, m_pSurface->format, &r, &g, &b);
+
+	constexpr float toRatio{ 1.f / 255.f };
+	return { r * toRatio, g * toRatio, b * toRatio };
+}
 
 void Texture::Initialize(ID3D11Device* pDevice, SDL_Surface* pSurface)
 {
@@ -67,7 +98,4 @@ void Texture::Initialize(ID3D11Device* pDevice, SDL_Surface* pSurface)
 		std::cout << "Failed to create resource view. Texture.cpp l66\n";
 		return;
 	}
-
-
-	SDL_FreeSurface(pSurface);
 }

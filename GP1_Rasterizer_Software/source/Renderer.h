@@ -31,7 +31,7 @@ namespace dae
 		void Update(Timer* pTimer);
 		void Render();
 
-		bool SaveBufferToImage() const;
+		//bool SaveBufferToImage() const;
 		void CycleRenderMode();
 		void CycleShadingMode();
 		void ToggleNormalMap();

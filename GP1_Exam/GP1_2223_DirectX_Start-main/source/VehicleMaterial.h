@@ -2,6 +2,7 @@
 #include "Material.h"
 
 class Texture;
+class Mesh;
 
 class VehicleMaterial final : public Material
 {
@@ -17,6 +18,8 @@ public:
 	std::shared_ptr<Texture> GetNormalMap() const { return m_pNormalMap; };
 	std::shared_ptr<Texture> GetSpecularMap() const { return m_pSpecularMap; };
 	std::shared_ptr<Texture> GetGlossinessMap() const { return m_pGlossinessMap; };
+
+	virtual ColorRGB PixelShading(const Vertex_Out& v, const Mesh& mesh, const Camera& camera) const override;
 
 private:
 	void SetShaderResources();
