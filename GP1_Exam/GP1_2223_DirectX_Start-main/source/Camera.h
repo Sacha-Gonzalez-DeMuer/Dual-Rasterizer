@@ -17,6 +17,8 @@ public:
 	dae::Matrix GetProjectionMatrix() const { return m_ProjectionMatrix; };
 	Vector3 GetForward() const { return m_Forward; };
 
+	void BoostMovementSpeed();
+
 private:
 	//camera settings
 	Vector3 m_Origin;

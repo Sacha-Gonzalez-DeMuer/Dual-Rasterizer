@@ -3,7 +3,7 @@
 
 
 Camera::Camera()
-	: m_Origin{ 0.f, 0.f, 0.f }
+	: m_Origin{ 0.f, 10.f, 0.f }
 	, m_FovAngle{ 45.f }
 	, m_FOV{ tanf((m_FovAngle * TO_RADIANS) / 2.f) }
 	, m_AspectRatio{1.f}
@@ -12,7 +12,7 @@ Camera::Camera()
 	, m_Up{ Vector3::UnitY }
 	, m_NearPlane{.1f}
 	, m_FarPlane{100.f}
-	, m_MoveSpeed{1.f}
+	, m_MoveSpeed{20.f}
 	, m_TotalPitch{ 0.f }
 	, m_TotalYaw{ 0.f }
 {	
@@ -30,7 +30,7 @@ Camera::Camera(const Vector3& origin, float fovAngle, float aspectRatio)
 	, m_Forward{Vector3::UnitZ}
 	, m_Right{Vector3::UnitX}
 	, m_Up{Vector3::UnitY}
-	, m_MoveSpeed{1.f}
+	, m_MoveSpeed{20.f}
 	, m_TotalPitch{0.f}
 	, m_TotalYaw{0.f}
 {
@@ -40,7 +40,7 @@ Camera::Camera(const Vector3& origin, float fovAngle, float aspectRatio)
 
 void Camera::Update(const Timer* pTimer)
 {
-	const float constSpeed{ pTimer->GetElapsed() * m_MoveSpeed * 100};
+	const float constSpeed{ pTimer->GetElapsed() * m_MoveSpeed};
 
 	//handle camera control
 	HandleMouseTransforms(constSpeed);
@@ -55,6 +55,12 @@ void Camera::Update(const Timer* pTimer)
 	//recalculate matrices with new axes
 	CalculateViewMatrix();
 	CalculateProjectionMatrix();
+}
+
+void Camera::BoostMovementSpeed()
+{
+	m_MoveSpeed *= 2;
+	std::cout << "Movement speed boosted: " << m_MoveSpeed << "\n";
 }
 
 void Camera::CalculateViewMatrix()

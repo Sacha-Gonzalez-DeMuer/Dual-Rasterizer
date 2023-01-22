@@ -6,7 +6,7 @@
 #include "DXRenderer.h"
 
 Scene::Scene()
-	: m_Camera{ { 0.f, 0.f, -10.f }, 45.f, 1.7777f }
+	: m_Camera{ { 0.f, 0.f, -50.f }, 45.f, 1.7777f }
 {
 }
 

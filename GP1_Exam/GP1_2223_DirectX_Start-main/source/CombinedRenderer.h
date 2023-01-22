@@ -11,11 +11,23 @@ public:
 
 	void ToggleGPU();
 	void ToggleRotation();
+	void ToggleNormalMap();
+	void ToggleDepthBuffer();
+	void ToggleBoundingBox();
+
 	void CycleCullMode();
+	void CycleSampleState();
+	void CycleShadingMode();
+
+	void BoostMovementSpeed();
 private:
 	bool m_UseGPU;
 	bool m_RotateMesh;
+	bool m_UseNormalMaps;
+	bool m_VisualizeDepthBuffer;
 
 	CullMode m_CullMode;
+	SamplerState m_SampleState;
+	ShadingMode m_ShadingMode;
 };
 

@@ -36,8 +36,9 @@ public:
 
 
 	// Control
-	void ToggleRotation();
+	void SetRotation(bool rotate);
 	void SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
+	void SetSampleState(SamplerState state, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext);
 	void ToggleRender();
 
 private:

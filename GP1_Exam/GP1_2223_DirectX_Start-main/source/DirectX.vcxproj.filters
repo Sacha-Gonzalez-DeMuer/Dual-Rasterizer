@@ -20,6 +20,12 @@
     <Filter Include="Shared\Materials">
       <UniqueIdentifier>{3a9a6f88-8cb0-4cc7-b5d7-40d638b75b68}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shared\Scenes">
+      <UniqueIdentifier>{4813cbcc-1239-4a6c-b4f6-1bf4d94c89df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Managers">
+      <UniqueIdentifier>{ed7599d4-fe13-4a6e-9cbf-4ef869b45ed9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vector3.h">
@@ -50,16 +56,10 @@
     <ClInclude Include="Renderer.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
     <ClInclude Include="SRenderer.h">
       <Filter>SRenderer</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshManager.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="Timer.h">
@@ -75,9 +75,6 @@
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="Texture.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
-    <ClInclude Include="VehicleScene.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="Utils.h">
@@ -96,6 +93,18 @@
       <Filter>Shared\Materials</Filter>
     </ClInclude>
     <ClInclude Include="FilePaths.h" />
+    <ClInclude Include="VehicleScene.h">
+      <Filter>Shared\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Shared\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshManager.h">
+      <Filter>Shared\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialManager.h">
+      <Filter>Shared\Managers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -113,9 +122,6 @@
     </ClCompile>
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="Texture.cpp">
-      <Filter>Math</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene.cpp">
       <Filter>Math</Filter>
     </ClCompile>
     <ClCompile Include="Renderer.cpp">
@@ -139,9 +145,6 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="MeshManager.cpp">
-      <Filter>Shared</Filter>
-    </ClCompile>
     <ClCompile Include="VehicleMaterial.cpp">
       <Filter>Shared\Materials</Filter>
     </ClCompile>
@@ -150,6 +153,15 @@
     </ClCompile>
     <ClCompile Include="CombustionMaterial.cpp">
       <Filter>Shared\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Shared\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshManager.cpp">
+      <Filter>Shared\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialManager.cpp">
+      <Filter>Shared\Managers</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

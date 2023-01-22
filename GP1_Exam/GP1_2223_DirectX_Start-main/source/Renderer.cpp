@@ -17,7 +17,6 @@ Renderer::Renderer(SDL_Window* pWindow)
 
 Renderer::~Renderer()
 {
-
 }
 
 void Renderer::UpdateWorldViewProjectionMatrix(const Matrix& worldMatrix, const Matrix& viewMatrix, const Matrix& projectionMatrix)

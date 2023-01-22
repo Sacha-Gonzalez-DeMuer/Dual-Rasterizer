@@ -7,6 +7,13 @@ namespace dae
 {
 	namespace Utils
 	{
+		template<typename enumT>
+		void CycleEnum(enumT& data)
+		{
+			data = static_cast<enumT>((static_cast<int>(data) + 1) % static_cast<int>(enumT::Size));
+		}
+
+
 		//Just parses vertices and indices
 #pragma warning(push)
 #pragma warning(disable : 4505) //Warning unreferenced local function

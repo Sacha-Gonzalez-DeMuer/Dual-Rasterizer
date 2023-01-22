@@ -19,6 +19,7 @@ void printPixelColors(SDL_Surface* surface) {
 
 SRenderer::SRenderer(SDL_Window* pWindow)
 	: Renderer(pWindow)
+	, m_CullMode{CullMode::Backface}
 {
 	//Create Buffers
 	m_pFrontBuffer = SDL_GetWindowSurface(pWindow);
@@ -69,6 +70,16 @@ void SRenderer::Update(dae::Timer* pTimer)
 }
 
 
+void SRenderer::SetDepthBufferVisualization(bool visualize)
+{
+	m_VisualizeDepthBuffer = visualize;
+}
+
+void SRenderer::SetBoundingBoxVisualization(bool visualize)
+{
+	m_VisualizeBoundingBox = visualize;
+}
+
 void SRenderer::RenderLoop()
 {
 	//depth buffer
@@ -113,27 +124,39 @@ void SRenderer::PixelLoop(const Triangle& t, const BoundingBox& bb, std::shared_
 	{
 		for (int py{ bb.minY }; py <= bb.maxY; ++py)
 		{
-			//pixel values
-			const int pixelIdx{ px + (py * m_Width) };
-			const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
-			ColorRGB finalColor{ 0, 0, 0 };
 
-			float weights[3]{};
-			if (IsPointInTri(pixelCoord, t, weights))
+			if (m_VisualizeBoundingBox)
 			{
-				const float interpolatedDepthZ{ t.GetInterpolatedZ(weights) };
+				//Update Color in Buffer
+				
+				m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+					static_cast<uint8_t>(255),
+					static_cast<uint8_t>(255),
+					static_cast<uint8_t>(255));
+			}
+			else {
 
-				if (interpolatedDepthZ > 0.f && interpolatedDepthZ < 1.f && interpolatedDepthZ < m_pDepthBufferPixels[pixelIdx])
+				//pixel values
+				const int pixelIdx{ px + (py * m_Width) };
+				const Vector2 pixelCoord{ static_cast<float>(px), static_cast<float>(py) };
+				ColorRGB finalColor{ 0, 0, 0 };
+
+				float weights[3]{};
+				if (IsPointInTri(pixelCoord, t, weights))
 				{
-					m_pDepthBufferPixels[pixelIdx] = interpolatedDepthZ;
+					const float interpolatedDepthZ{ t.GetInterpolatedZ(weights) };
 
-					const float interpolatedDepthW{ t.GetInterpolatedW(weights) };
+					if (interpolatedDepthZ > 0.f && interpolatedDepthZ < 1.f && interpolatedDepthZ < m_pDepthBufferPixels[pixelIdx])
+					{
+						m_pDepthBufferPixels[pixelIdx] = interpolatedDepthZ;
 
-					const float recipW0{ 1 / t.vertices[0].position.w };
-					const float recipW1{ 1 / t.vertices[1].position.w };
-					const float recipW2{ 1 / t.vertices[2].position.w };
+						const float interpolatedDepthW{ t.GetInterpolatedW(weights) };
 
-					const Vector2 uvInterpolated{
+						const float recipW0{ 1 / t.vertices[0].position.w };
+						const float recipW1{ 1 / t.vertices[1].position.w };
+						const float recipW2{ 1 / t.vertices[2].position.w };
+
+						const Vector2 uvInterpolated{
 						(
 						((t.vertices[0].uv * recipW0) * weights[1]) +
 						((t.vertices[1].uv * recipW1) * weights[2]) +
@@ -141,67 +164,62 @@ void SRenderer::PixelLoop(const Triangle& t, const BoundingBox& bb, std::shared_
 						)
 						* interpolatedDepthW
 					};
-					const Vector3 normalInterpolated{
-						(
-						((t.vertices[0].normal * recipW0) * weights[1]) +
-						((t.vertices[1].normal * recipW1) * weights[2]) +
-						((t.vertices[2].normal * recipW2) * weights[0])
-						)
-						* interpolatedDepthW
-					};
-					const Vector3 tangentInterpolated{
-						(
-						((t.vertices[0].tangent * recipW0) * weights[1]) +
-						((t.vertices[1].tangent * recipW1) * weights[2]) +
-						((t.vertices[2].tangent * recipW2) * weights[0])
-						)
-						* interpolatedDepthW
-					};
+						const Vector3 normalInterpolated{
+							(
+							((t.vertices[0].normal * recipW0) * weights[1]) +
+							((t.vertices[1].normal * recipW1) * weights[2]) +
+							((t.vertices[2].normal * recipW2) * weights[0])
+							)
+							* interpolatedDepthW
+						};
+						const Vector3 tangentInterpolated{
+							(
+							((t.vertices[0].tangent * recipW0) * weights[1]) +
+							((t.vertices[1].tangent * recipW1) * weights[2]) +
+							((t.vertices[2].tangent * recipW2) * weights[0])
+							)
+							* interpolatedDepthW
+						};
 
-					Vertex_Out interpolatedVertex{};	
-					interpolatedVertex.normal = normalInterpolated.Normalized();
-					interpolatedVertex.uv = uvInterpolated;
-					interpolatedVertex.tangent = tangentInterpolated.Normalized();
-					const float interX{
+						Vertex_Out interpolatedVertex{};	
+						interpolatedVertex.normal = normalInterpolated.Normalized();
+						interpolatedVertex.uv = uvInterpolated;
+						interpolatedVertex.tangent = tangentInterpolated.Normalized();
+						const float interX{
 						1 / (
 							((1 / t.vertices[0].position.x) * weights[1]) +
 							((1 / t.vertices[1].position.x) * weights[2]) +
 							((1 / t.vertices[2].position.x) * weights[0]))
 					};
-					const float interY{
+						const float interY{
 						1 / (
 						((1 / t.vertices[0].position.y) * weights[1]) +
 						((1 / t.vertices[1].position.y) * weights[2]) +
 						((1 / t.vertices[2].position.y) * weights[0]))
 					};
-					interpolatedVertex.position = { interX, interY, interpolatedDepthZ, interpolatedDepthW };
+						interpolatedVertex.position = { interX, interY, interpolatedDepthZ, interpolatedDepthW };
 
-					switch (m_CurrentRenderMode)
-					{
-					case dae::RenderMode::FinalColor:
-						finalColor = mesh->PixelShading(interpolatedVertex, m_pScene->GetCamera());
-						break;
-					case dae::RenderMode::DepthBuffer:
-						const float greyVal{ Remap(m_pDepthBufferPixels[pixelIdx], .985f, 1.f) };
-						finalColor = { greyVal, greyVal, greyVal };
-						break;
-					}
+						if (m_VisualizeDepthBuffer)
+						{
+							const float greyVal{ Remap(m_pDepthBufferPixels[pixelIdx], .985f, 1.f) };
+							finalColor = { greyVal, greyVal, greyVal };
+						}
+						else
+						{
+							finalColor = mesh->PixelShading(interpolatedVertex, m_pScene->GetCamera());
+						}
 
-					//Update Color in Buffer
-					finalColor.MaxToOne();
-					m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
-						static_cast<uint8_t>(finalColor.r * 255),
-						static_cast<uint8_t>(finalColor.g * 255),
-						static_cast<uint8_t>(finalColor.b * 255));
-				};
+						//Update Color in Buffer
+						finalColor.MaxToOne();
+						m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+							static_cast<uint8_t>(finalColor.r * 255),
+							static_cast<uint8_t>(finalColor.g * 255),
+							static_cast<uint8_t>(finalColor.b * 255));
+					};
+				}
 			}
 		}
 	}
-}
-
-Vertex_Out SRenderer::GetInterpolatedVert(const Triangle& t)
-{
-	return Vertex_Out();
 }
 
 bool SRenderer::IsVertexInFrustum(const Vertex_Out& v) const
@@ -229,7 +247,18 @@ bool SRenderer::IsPointInTri(const Vector2& P, const Triangle& t, float(&weights
 		const Vector2 pointToSide{ P - t.GetVector2Pos(i) };
 		const float cross{ t.edges[i].x * pointToSide.y - t.edges[i].y * pointToSide.x };
 		weights[i] = cross * t.recipTotalArea;
-		if (cross < 0) return false;
+
+		switch (m_CullMode)
+		{
+			case CullMode::None:
+			case CullMode::Backface:
+				if (cross < 0) return false;
+				break;
+
+			case CullMode::Frontface:
+				if (cross > 0) return false;
+				break;
+		}
 	}
 
 	return true;
@@ -261,4 +290,9 @@ BoundingBox SRenderer::GenerateBoundingBox(const Triangle t) const
 float SRenderer::Remap(float value, float rangeMin, float rangeMax)
 {
 	return (value - rangeMin) / (rangeMax - rangeMin);
+}
+
+void SRenderer::SetCullMode(CullMode mode)
+{
+	m_CullMode = mode;
 }

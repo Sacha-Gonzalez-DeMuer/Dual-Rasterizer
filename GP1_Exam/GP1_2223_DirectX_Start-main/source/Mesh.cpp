@@ -24,7 +24,6 @@ Mesh::Mesh(const std::string& filePath)
 
 Mesh::~Mesh()
 {
-	std::cout << "Mesh destructor\n";
 	m_pVertexBuffer->Release();
 	m_pVertexBuffer = nullptr;
 
@@ -244,10 +243,9 @@ void Mesh::VertexTransformationFunction(const Matrix& worldViewProjectionMatrix)
 	}
 }
 
-
-void Mesh::ToggleRotation()
+void Mesh::SetRotation(bool rotate)
 {
-	m_RotationEnabled = !m_RotationEnabled;
+	m_RotationEnabled = rotate;
 }
 
 void Mesh::SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext)
@@ -255,7 +253,15 @@ void Mesh::SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceContext
 	m_pMaterial->SetCullMode(mode, pDevice, pDeviceContext);
 }
 
+void Mesh::SetSampleState(SamplerState state, ID3D11Device* pDevice, ID3D11DeviceContext* pDeviceContext)
+{
+	m_pMaterial->SetSampler(state, pDevice, pDeviceContext);
+}
+
 void Mesh::ToggleRender()
 {
 	m_RenderEnabled = !m_RenderEnabled;
+
+	std::cout << "TOGGLED MESH RENDER: ";
+	m_RenderEnabled ? std::cout << "ON\n" : std::cout << "OFF\n";
 }

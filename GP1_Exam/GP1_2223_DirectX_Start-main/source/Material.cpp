@@ -4,6 +4,7 @@
 
 Material::Material(ID3D11Device* pDevice, const std::wstring& assetFile)
     : m_pEffect{ LoadEffect(pDevice, assetFile) }
+    , m_UseNormalMap{ true }
 {
     // Set Technique
     m_pTechnique = m_pEffect->GetTechniqueByName("DefaultTechnique");
@@ -174,7 +175,6 @@ void Material::SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceCon
 {
     D3D11_RASTERIZER_DESC rasterDesc;
 
-
     rasterDesc.FillMode = D3D11_FILL_SOLID;
     switch (mode)
     {
@@ -215,6 +215,16 @@ void Material::SetCullMode(CullMode mode, ID3D11Device* pDevice, ID3D11DeviceCon
 ColorRGB Material::Sample(const Vector2& uv, const Texture& texture)
 {
     return ColorRGB();
+}
+
+void Material::SetShadingMode(ShadingMode mode)
+{
+    m_ShadingMode = mode;
+}
+
+void Material::UseNormalMap(bool use)
+{
+    m_UseNormalMap = use;
 }
 
 

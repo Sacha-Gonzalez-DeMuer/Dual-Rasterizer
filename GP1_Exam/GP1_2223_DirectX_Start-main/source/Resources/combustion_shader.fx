@@ -37,40 +37,11 @@ DepthStencilState gDepthStencilState
     DepthWriteMask = zero;
     DepthFunc = less;
     StencilEnable = false;
-
-    //StencilReadMask = 0x0F;
-    //StencilWriteMask = 0x0F;
-
-    //FrontFaceStencilFunc = always;
-    //BackFaceStencilFunc = always;
-
-    //FrontFaceStencilDepthFail = keep;
-    //BackFaceStencilDepthFail = keep;
-
-    //FrontFaceStencilPass = keep;
-    //BackFaceStencilPass = keep;
-
-    //FrontFaceStencilFail = keep;
-    //BackFaceStencilFail = keep;
 };
 
 SamplerState gSamplePoint
 {
     Filter = MIN_MAG_MIP_POINT;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState gSampleLinear
-{
-    Filter = MIN_MAG_MIP_LINEAR;
-    AddressU = Wrap;
-    AddressV = Wrap;
-};
-
-SamplerState gSampleAnisotropic
-{
-    Filter = ANISOTROPIC;
     AddressU = Wrap;
     AddressV = Wrap;
 };

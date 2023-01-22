@@ -9,11 +9,13 @@
 #include "Renderer.h"
 #include "CombinedRenderer.h"
 #include "MeshManager.h"
+#include "MaterialManager.h"
 #include "FilePaths.h"
 
 void ShutDown(SDL_Window* pWindow)
 {
 	delete MeshManager::Get();
+	delete MaterialManager::Get();
 
 	SDL_DestroyWindow(pWindow);
 	SDL_Quit();
@@ -60,7 +62,9 @@ int main(int argc, char* args[])
 				isLooping = false;
 				break;
 			case SDL_KEYUP:
-				//Test for a key
+				if (e.key.keysym.scancode == SDL_SCANCODE_LSHIFT)
+					pRenderer->BoostMovementSpeed();
+
 				if (e.key.keysym.scancode == SDL_SCANCODE_F1)
 					pRenderer->ToggleGPU();
 
@@ -69,6 +73,21 @@ int main(int argc, char* args[])
 
 				if(e.key.keysym.scancode == SDL_SCANCODE_F3)
 					MeshManager::Get()->GetMesh(FILE_OBJ_FIREFX)->ToggleRender();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F4)
+					pRenderer->CycleSampleState();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F5)
+					pRenderer->CycleShadingMode();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F6)
+					pRenderer->ToggleNormalMap();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F7)
+					pRenderer->ToggleDepthBuffer();
+
+				if (e.key.keysym.scancode == SDL_SCANCODE_F8)
+					pRenderer->ToggleBoundingBox();
 
 				if (e.key.keysym.scancode == SDL_SCANCODE_F9)
 					pRenderer->CycleCullMode();

@@ -40,11 +40,7 @@ ColorRGB VehicleMaterial::PixelShading(const Vertex_Out& v, const Mesh& mesh, co
 	const Vector3 tangentSpaceSampledNormal{ tangentSpace.TransformVector(vSampledNormal).Normalized() };
 
 	//choose which normal to use
-	Vector3 usedNormal{};
-	//if (m_NormalToggled)
-		usedNormal = tangentSpaceSampledNormal;
-	//else
-	//	usedNormal = v.normal;
+	Vector3 usedNormal{ m_UseNormalMap ? tangentSpaceSampledNormal : v.normal };
 
 	const float observedArea{ std::max(0.f, Vector3::Dot(usedNormal, -lightDirection)) };
 
@@ -54,7 +50,7 @@ ColorRGB VehicleMaterial::PixelShading(const Vertex_Out& v, const Mesh& mesh, co
 
 	constexpr ColorRGB ambient{ .025f, .025f, .025f };
 
-	/*switch (m_CurrentShadingMode)
+	switch (m_ShadingMode)
 	{
 	case ShadingMode::ObservedArea:
 		finalColor += ColorRGB(1, 1, 1) * observedArea;
@@ -66,9 +62,9 @@ ColorRGB VehicleMaterial::PixelShading(const Vertex_Out& v, const Mesh& mesh, co
 		finalColor += ColorRGB(1, 1, 1) * phongSpecular * observedArea;
 		break;
 	default:
-	case ShadingMode::Combined:*/
+	case ShadingMode::Combined:
 		finalColor += lambertDiffuse * observedArea + phongSpecular + ambient;
-	//}
+	}
 
 	finalColor.MaxToOne();
 

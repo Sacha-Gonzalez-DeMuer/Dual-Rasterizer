@@ -113,16 +113,7 @@ namespace dae
 	{
 		Point,
 		Linear,
-		Anisotropic
+		Anisotropic,
+		Size = 3
 	};
-
-	//struct Mesh
-	//{
-	//	std::vector<Vertex> vertices{};
-	//	std::vector<uint32_t> indices{};
-	//	PrimitiveTopology primitiveTopology{ PrimitiveTopology::TriangleStrip };
-
-	//	std::vector<Vertex_Out> vertices_out{};
-	//	Matrix worldMatrix{};
-	//};
 }
