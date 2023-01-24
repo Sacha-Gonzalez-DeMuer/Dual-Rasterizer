@@ -1,0 +1,167 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Math">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{72056cb6-72a2-42b7-b05e-376f1ddd957e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SRenderer">
+      <UniqueIdentifier>{1b35c560-0eee-4a92-90d4-ba3b7c745682}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DXRenderer">
+      <UniqueIdentifier>{030d123e-e709-4738-b616-84317aa7aec1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{4e92f83c-fb7f-41b6-802b-e1b72c4d1fdf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Materials">
+      <UniqueIdentifier>{3a9a6f88-8cb0-4cc7-b5d7-40d638b75b68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Scenes">
+      <UniqueIdentifier>{4813cbcc-1239-4a6c-b4f6-1bf4d94c89df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared\Managers">
+      <UniqueIdentifier>{ed7599d4-fe13-4a6e-9cbf-4ef869b45ed9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Vector3.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector4.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="MathHelpers.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector2.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="ColorRGB.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="DXRenderer.h">
+      <Filter>DXRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="SRenderer.h">
+      <Filter>SRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="CombinedRenderer.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="DataTypes.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="BRDFs.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="VehicleMaterial.h">
+      <Filter>Shared\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Shared\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="CombustionMaterial.h">
+      <Filter>Shared\Materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FilePaths.h" />
+    <ClInclude Include="VehicleScene.h">
+      <Filter>Shared\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Shared\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshManager.h">
+      <Filter>Shared\Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="MaterialManager.h">
+      <Filter>Shared\Managers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Vector3.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Matrix.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Vector4.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Vector2.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="Texture.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="DXRenderer.cpp">
+      <Filter>DXRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="SRenderer.cpp">
+      <Filter>SRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="CombinedRenderer.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="VehicleMaterial.cpp">
+      <Filter>Shared\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Shared\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="CombustionMaterial.cpp">
+      <Filter>Shared\Materials</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Shared\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshManager.cpp">
+      <Filter>Shared\Managers</Filter>
+    </ClCompile>
+    <ClCompile Include="MaterialManager.cpp">
+      <Filter>Shared\Managers</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
